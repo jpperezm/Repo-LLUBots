@@ -1,0 +1,3 @@
+Frecuencia de comunicación LLUBot-Servidor:
+	- Buffer para lecturas del infrarojo
+	- Los demás sensores son puntuales así que podemos mandar la información cada x segundos.

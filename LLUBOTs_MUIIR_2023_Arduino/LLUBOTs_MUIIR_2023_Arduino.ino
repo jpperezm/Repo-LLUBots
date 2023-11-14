@@ -14,7 +14,7 @@
 #define ledPin D0 //D0 for Wemos D1 R2// D2 for Wemos D1 R1  // for the low battery warning
 #define voltagePin D4 //for Wemos D1 R1 and R2 // for the battery voltage detection
 #define servoPin D7 //D9 for Wemos D1 R1 // for the use of a servo motor
-#define sensorPin A0          // for the use of a analog sensor
+#define sensorPin A0  // for the use of a analog sensor
 
 // The motors are created with the use of the libraries:
 AF_Stepper motorR(256, 1);    // Right motor  (stepper)
@@ -22,7 +22,7 @@ AF_Stepper motorL(256, 2);    // Left  motor  (stepper)
 Servo_ESP8266 sensorServo;    // Sensor motor (servo)
 
 
-int n_orders=100;//Maximum number of oreders that the LLUBot may execute 
+int n_orders=100;//Maximum number of orders that the LLUBot may execute 
 char orders[100];//Orders executed
 int distances[100];//Distances moved in each order
 int next_order=0;//the next order and distance to fill

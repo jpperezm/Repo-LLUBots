@@ -12,7 +12,7 @@ while (actividadSel==1){
   else {
     //***************************************NO TOCAR***************************//
     WiFiClient client = server.available();
-    while(!client){
+    while(!client) {
       // Check if a client has connected
       client = server.available();
 //      if (!client) {
