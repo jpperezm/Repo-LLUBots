@@ -1,4 +1,3 @@
-#include "src\Client\HTML\HTML_STRINGS.cpp"
 // FUNCTION 10: MENÚ PRINCIPAL: ------------------------------------------------------------------------------------------//
 void principalMenu(){
 

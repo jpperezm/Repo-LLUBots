@@ -10,6 +10,18 @@
 #include <Servo_ESP8266.h>
 #include <String.h>
 
+#include "src/Client/HTML/HTML_STRINGS.cpp"
+#include "src/Client/HTML/S_lowBatteryServer.cpp"
+#include "src/Movement/Chess/U_B_piecesMovement.cpp"
+#include "src/Movement/Chess/V_actividad2.cpp"
+#include "src/Movement/Roomba/C_roombaTime.cpp"
+#include "src/Movement/Roomba/U_actividad1.cpp"
+
+
+
+
+
+
 // Connection's data:
 #define ledPin D0 //D0 for Wemos D1 R2// D2 for Wemos D1 R1  // for the low battery warning
 #define voltagePin D4 //for Wemos D1 R1 and R2 // for the battery voltage detection
