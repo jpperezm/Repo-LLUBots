@@ -2,9 +2,16 @@
 
 #include "../include/distanceSensing.h"
 
+Servo_ESP8266 sensorServo;    // Sensor motor (servo)
+
+void initSensorServo(uint8_t servoPin, uint8_t servoAngle) {
+  sensorServo.attach(servoPin);
+  sensorServo.write(servoAngle); 
+}
+
 // FUNCTION 4: DISTANCE READING: ------------------------------------------------------------------------------------------//
-float sensorDistanceRead(float chosenServoAngle, Servo_ESP8266* sensorServo) { 
-  sensorServo->write(chosenServoAngle);
+float sensorDistanceRead(float chosenServoAngle) { 
+  sensorServo.write(chosenServoAngle);
 
   // Then choose the delay for the required angle, for 0º, 90º and 180º, the required time is longer:
   if ((chosenServoAngle == 90) || (chosenServoAngle == 0) || (chosenServoAngle == 45) || (chosenServoAngle == 135)) {
@@ -75,7 +82,7 @@ float getsensorDistance(int mV) {
 //------------------------------ SPECIAL FUNCTIONS FOR DIDACTIC USE -------------------------------------------------------//
 
 // FUNCTION 7: SEE STRAIGHT: ----------------------------------------------------------------------------------------------//
-float seeStraight(Servo_ESP8266* sensorServo) {
+float seeStraight() {
 
   // First the variables are created:
   float minCm = 23.0;    // 23 cm is the minimum distance to run, as it's the LLUBot's larger distance (center in the sensor)
@@ -85,10 +92,10 @@ float seeStraight(Servo_ESP8266* sensorServo) {
   int maxDegFront = 127; // 
 
   // It makes the LLUBot watch if the front path is clear for the entire width of the LLUBot 
-  for (int i=minDegFront; i<maxDegFront; i++) {  // from 45º to 136º to make sure
-    readCm = sensorDistanceRead(i, sensorServo);
+  for (int i = minDegFront; i < maxDegFront; i++) {  // from 45º to 136º to make sure
+    readCm = sensorDistanceRead(i);
     if (i == 90) {
-      readCm90 = sensorDistanceRead(i, sensorServo);
+      readCm90 = sensorDistanceRead(i);
     }
     if (readCm > minCm) {
       minCm = readCm;
@@ -97,8 +104,7 @@ float seeStraight(Servo_ESP8266* sensorServo) {
 
   if (readCm < readCm90) {
     return readCm;
-  }
-  else {
+  } else {
     return readCm90;
   }
 }

@@ -6,15 +6,14 @@
 #include "../include/movements.h"
 #include "../include/distanceSensing.h"
 
-void chooseWay(Servo_ESP8266* sensorServo, AF_Stepper& motorR, AF_Stepper& motorL, int& next_order, char* orders, int* distances) {
-  // First the variables are created:
+void chooseWay() {
   float minCm = 21.0; // 20 cm is the minimum distance to run, as it's the larger distance of the LLUBot
   float readCm = 0;   // for the reading of the distance
   float readAngle = 90.0; // which represents: the read angle is 90, looking for a better angle to run
 
   // A 45 degree reading is taken from the current position of the LLUBot to its right:
-  for(int i = 0; i < 45; i++) {  // 
-    readCm = sensorDistanceRead(i, sensorServo);
+  for(int i = 0; i < 45; i++) {
+    readCm = sensorDistanceRead(i);
     if (readCm >= minCm){
       minCm = readCm;
       readAngle = i;
@@ -22,8 +21,8 @@ void chooseWay(Servo_ESP8266* sensorServo, AF_Stepper& motorR, AF_Stepper& motor
   }
 
   // Another 45 degree reading is taken from the current position of the LLUBot to its left:
-  for(int i = 135; i < 181; i++) {  // 
-    readCm = sensorDistanceRead(i, sensorServo);
+  for(int i = 135; i < 181; i++) { 
+    readCm = sensorDistanceRead(i);
     if (readCm >= minCm){
       minCm = readCm;
       readAngle = i;
@@ -35,28 +34,27 @@ void chooseWay(Servo_ESP8266* sensorServo, AF_Stepper& motorR, AF_Stepper& motor
   Serial.println(readAngle);
   Serial.print("Distance to go: ");
   Serial.println(minCm);
-  
 
   // It is assessed whether there are possible ways to advance the robot completely
   if (minCm > 21.0) {
     // To return the sensor to its original way:
-    sensorServo->write(90.0); // 90 degrees --> front
-    delay(50); // servo movement delay
+    sensorServo.write(90.0);
+    delay(50);
 
     if (readAngle < 90.0) {
-      turn('R', 90.0 - readAngle, motorR, motorL, next_order, orders, distances);
+      turn('R', 90.0 - readAngle);
     } else {
-      turn('L', readAngle - 90.0, motorR, motorL, next_order, orders, distances);
+      turn('L', readAngle - 90.0);
     }
-    goStraight('F', minCm, motorR, motorL, next_order, orders, distances);
+    goStraight('F', minCm);
   } 
   
   // If there are no tracks, turn 180 degrees to look at the other alternatives
   else {
-    turn('L', 180, motorR, motorL, next_order, orders, distances);
+    turn('L', 180);
     // It evaluates once again
     for (int i = 0; i < 181; i++) { // the other 180 degrees
-      readCm = sensorDistanceRead(i, sensorServo);
+      readCm = sensorDistanceRead(i);
       if (readCm >= minCm) {
         minCm = readCm;
         readAngle = i;
@@ -65,38 +63,39 @@ void chooseWay(Servo_ESP8266* sensorServo, AF_Stepper& motorR, AF_Stepper& motor
 
     if (minCm > 21.0) {
       // To return the sensor to its original way:
-      sensorServo->write(90.0); // 90 degrees --> front
+      sensorServo.write(90.0); // 90 degrees --> front
       delay(50); // servo movement delay
 
       if (readAngle < 90.0) {
-        turn('R', 90.0 - readAngle, motorR, motorL, next_order, orders, distances);
+        turn('R', 90.0 - readAngle);
       }
       else {
-        turn('L', readAngle - 90.0, motorR, motorL, next_order, orders, distances);
+        turn('L', readAngle - 90.0);
       }
-      goStraight('F', minCm, motorR, motorL, next_order, orders, distances);
+      goStraight('F', minCm);
     } else {
       Serial.println("No me puedo mover");
     }
   }
-} //----------------------------------------------------------------------------------------------------------------------//
+}
 
-void roombaTime(int n, Servo_ESP8266* sensorServo, AF_Stepper& motorR, AF_Stepper& motorL, int& next_order, char* orders, int* distances){
-  int n_ = n;
-  next_order = 0;//the next order and distance to fill
+
+void roombaTime(int n) {
+  next_order = 0;  //the next order and distance to fill
   Serial.print("Within RoombaTime ");
-  Serial.println(n_);
+  Serial.println(n);
 
-  for (int i = 0; i < n_; i++) {
+  for (int i = 0; i < n; i++) {
     Serial.print("Round number: ");
     Serial.println(i);
-    int advanceCm = seeStraight(sensorServo);
+    int advanceCm = seeStraight();
     Serial.println(advanceCm);
     
+    // If the distance is greater than 21 cm, the robot advances
     if (advanceCm > 21.0) {
-      goStraight('F', advanceCm, motorR, motorL, next_order, orders, distances);
+      goStraight('F', advanceCm);
     } else {
-      chooseWay(sensorServo, motorR, motorL, next_order, orders, distances);
+      chooseWay();
     }
   }
   
