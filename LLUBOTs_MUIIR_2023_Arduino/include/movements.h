@@ -22,3 +22,4 @@ void initMotors(uint16_t speed);
 void movement(char way, float steps);
 void goStraight(char way, float cm);
 void turn (char way, float angle);
+void stop();

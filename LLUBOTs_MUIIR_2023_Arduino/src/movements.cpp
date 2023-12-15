@@ -62,3 +62,8 @@ void turn(char way, float angle) {
   steps = angle * stepperResolution * stepToMicrostep * wheelsAxisDis / (wheelRadius * 720);  // Magic numbers are not nice
   movement (way, steps);
 }
+
+void stop() {
+  motorR.release();
+  motorL.release();
+}

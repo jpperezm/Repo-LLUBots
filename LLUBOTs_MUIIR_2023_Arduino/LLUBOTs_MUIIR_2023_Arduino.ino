@@ -8,6 +8,7 @@
  */
 
 #include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 #include <DMotor_mod.h>
 #include <Servo_ESP8266.h>
 
@@ -18,6 +19,7 @@
 #include "include/movements.h"
 #include "include/roomba.h"
 #include "include/serverConfig.h"
+#include "include/clientMQTT.h"
 
 const int lowBatteryLedPin = D0;
 const int batteryVoltagePin = D4;
@@ -36,16 +38,21 @@ void setup() {
   
   connectWifi();
 
-  startServer();
+  //startServer();
 
   initMotors(speed);
 
   digitalWrite(lowBatteryLedPin, LOW);
+
+  mqttSetup();
+  connect();
 }
 
 
 void loop() {
-  lowBatteryMock = 1; // TODO Low battery control using batteryVoltagePin
+
+  MQTTClient.loop();
+  /*lowBatteryMock = 1; // TODO Low battery control using batteryVoltagePin
 
   if (lowBatteryMock == 0) {
     digitalWrite(lowBatteryLedPin, HIGH);
@@ -60,6 +67,5 @@ void loop() {
         mainMenu();
         break;
     }
-  }
-  delay(100);
+  }*/
 }
