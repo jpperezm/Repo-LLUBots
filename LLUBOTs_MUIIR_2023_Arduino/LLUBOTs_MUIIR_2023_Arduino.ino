@@ -13,17 +13,15 @@
 #include <Servo_ESP8266.h>
 
 #include "include/lowBatteryClient.h"
-#include "include/mainClient.h"
-#include "include/roombaClient.h"
 #include "include/distanceSensing.h"
 #include "include/movements.h"
-#include "include/roomba.h"
 #include "include/serverConfig.h"
 #include "include/clientMQTT.h"
+#include "include/lineFollower.h"
 
 const int lowBatteryLedPin = D0;
 const int batteryVoltagePin = D4;
-const int servoPin = D7;
+
 
 uint8_t speed = 100; // in rpm
 uint8_t initServoAngle = 90;  // in degrees
@@ -50,22 +48,14 @@ void setup() {
 
 
 void loop() {
-
   MQTTClient.loop();
-  /*lowBatteryMock = 1; // TODO Low battery control using batteryVoltagePin
 
-  if (lowBatteryMock == 0) {
-    digitalWrite(lowBatteryLedPin, HIGH);
-    lowBatteryClient();
-  } else {
-    switch (selectedActivity) {
-      case 1:
-        Serial.println("hola");
-        roombaGame();
-        break;
-      default:
-        mainMenu();
-        break;
-    }
-  }*/
+  Serial.print("Izq: ");
+  Serial.println(lecturaSensorIzq);
+  Serial.print("Der: ");
+  Serial.println(lecturaSensorDer);
+
+  lecturaSensorIR();
+  sigueLineas(lecturaSensorIzq, lecturaSensorDer);
+
 }

@@ -2,8 +2,8 @@
 
 #include "../include/serverConfig.h"
 
-const char* ssid = "Redmi Note 12 Pro 5G";
-const char* password = "sonawifi"; 
+const char* ssid = "Red de Luis";
+const char* password = "holaQueTal"; 
 
 WiFiServer server(80);
 

@@ -37,19 +37,19 @@ void callback(char *topic, byte *payload, unsigned int length) {
   if (String(topic) == movement_topic) {
     if (message == "forward") {
       Serial.println("Moving forward");
-      goStraight('F', 10);
+      //goStraight('F', 10);
     } else if (message == "backward") {
       Serial.println("Moving backward");
-      goStraight('B', 10);
+      //goStraight('B', 10);
     } else if (message == "left") {
       Serial.println("Turning left");
-      turn('L', 90);
+      //turn('L', 90);
     } else if (message == "right") {
       Serial.println("Turning right");
-      turn('R', 90);
+      //turn('R', 90);
     } else if (message == "stop") {
       Serial.println("Stopping");
-      stop();
+      //stop();
     }
   }
   Serial.println();

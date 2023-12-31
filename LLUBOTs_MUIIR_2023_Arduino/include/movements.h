@@ -4,7 +4,7 @@ extern AF_Stepper motorR;
 extern AF_Stepper motorL;
 
 extern int next_order;
-
+extern bool movementRequest;
 const int n_orders = 100;  //Maximum number of oreders that the LLUBot may execute
 extern char orders[100];  //Orders executed
 extern int distances[100];  //Distances moved in each order
@@ -19,7 +19,6 @@ const float twoPi = 2 * 3.1416;     // geometry use of 2 * pi in the perimeter o
 
 
 void initMotors(uint16_t speed);
-void movement(char way, float steps);
+void movement(char way);
 void goStraight(char way, float cm);
 void turn (char way, float angle);
-void stop();
