@@ -9,6 +9,7 @@
 
 #include <PubSubClient.h>
 #include <DMotor_mod.h>
+#include <Wire.h>
 
 #include "include/movements.h"
 #include "include/lineFollower.h"
@@ -19,6 +20,9 @@ const int batteryVoltagePin = D4;
 uint8_t speed = 100; // in rpm
 uint8_t initServoAngle = 90;  // in degrees
 
+char s;
+bool isStarted = 0;
+
 void setup() {
   Serial.begin(115200);
  
@@ -28,15 +32,27 @@ void setup() {
   initMotors(speed);
 
   digitalWrite(lowBatteryLedPin, LOW);
+
+  Wire.begin(8);
+  Wire.onReceive(receiveEvent);
+  //Wire.onRequest(requestEvent);
 }
 
 
 void loop() {
-  Serial.print("Izq: ");
-  Serial.println(lecturaSensorIzq);
-  Serial.print("Der: ");
-  Serial.println(lecturaSensorDer);
+  if (isStarted) {
+    sigueLineas(lecturaSensorIzq, lecturaSensorDer);
+  }
+}
 
-  lecturaSensorIR();
-  sigueLineas(lecturaSensorIzq, lecturaSensorDer);
+void receiveEvent(int howMany) {
+  s = Wire.read();
+  switch(s) {
+    case 'm': isStarted = 1; break; // marcha
+    case 'p': isStarted = 0; break; // paro
+    case 'g': // 180
+    case 'n': // 90
+    case 'i': lecturaSensorIzq = Wire.read();
+    case 'd': lecturaSensorDer = Wire.read();
+   }
 }
