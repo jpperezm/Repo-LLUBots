@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 import dash_bootstrap_components as dbc
 from datetime import datetime
 import json
+import time
 import sys
 
 class LLUBot:
@@ -58,7 +59,7 @@ mensajes = []
 mi_mensaje = 0
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-  new_msg = "[" + msg.topic + ":" + str(datetime.utcfromtimestamp(msg.timestamp)) + "]:"
+  new_msg = "[" + msg.topic + ":" + str(datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")) + "]:"
   new_msg +=  msg.payload.decode()
   mensajes.append(new_msg)
   global mi_mensaje
