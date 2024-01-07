@@ -9,25 +9,27 @@
 
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
-#include "include/serverConfig.h"
+#include "include/wifiHandler.h"
 #include "include/clientMQTT.h"
-
+#include "include/robotStatusCollector.h"
 
 
 void setup() {
   Serial.begin(115200);
-  
-  connectWifi();
 
-  initMotors(speed);
+  initializeWifiConnection();
 
-  mqttSetup();
-  connect();
+  initializeMQTTConnection();
+  establishMQTTConnection();
 }
 
 
 void loop() {
-  MQTTClient.loop();
+  checkWifiConnection();
+  handleMQTTLoop();
+  Serial.println("Robot Status: " + generateRobotStatusJson());
+  delay(1000);
 }
 
