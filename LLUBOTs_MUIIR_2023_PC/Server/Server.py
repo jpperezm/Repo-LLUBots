@@ -10,29 +10,44 @@ import sys
 class LLUBot:
   _ID = 0
   #NFC / X
-  NFCInfo = []
+  NFCInfoList = []
   #INFO / X
-  SigLinea = []
-  UltraSon = []
-  Bateria = []
+  SigLineaList = []
+  UltraSonList = []
+  BateriaList = []
   #Modo / X
-  Modo = []
+  ModoList = []
+  
+  Ruta = 0
+  EnCasa = False
+  
+  def getHouse(self,number):
+    if (number == 1):
+      return "Blanca"
+    if (number == 2):
+      return "Morada"
+    if (number == 3):
+      return "Amarilla"
+    if (number == 4):
+      return "Verde"
+    if (number == 5):
+      return "Roja"
   
   def unpackJson(self,json_str):
     info = json.loads(json_str)
-    self.SigLinea.append(info["SigLinea"])
-    self.UltraSon.append(info["UltraSon"])
-    self.Bateria.append(info["Bateria"])
+    self.SigLineaList.append(info["SigLinea"])
+    self.UltraSonList.append(info["UltraSon"])
+    self.BateriaList.append(info["Bateria"])
   
   def __init__(self, id):
     self._ID = id
   
   def clear(self):
-    self.NFCInfo = []
-    self.SigLinea = []
-    self.UltraSon = []
-    self.Modo = []
-    self.Bateria = []
+    self.NFCInfoList = []
+    self.SigLineaList = []
+    self.UltraSonList = []
+    self.ModoList = []
+    self.BateriaList = []
 
 LLUBOTS = [LLUBot(1),LLUBot(2),LLUBot(3),LLUBot(4),LLUBot(5)]
 # Suscribe el cliente a los puntos de info del llubot endpoints
@@ -56,14 +71,19 @@ def on_connect(client, userdata, flags, rc):
     subscribe_ULLBOT(client,"5")
 
 mensajes = []
-mi_mensaje = 0
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
   new_msg = "[" + msg.topic + ":" + str(datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")) + "]:"
   new_msg +=  msg.payload.decode()
   mensajes.append(new_msg)
-  global mi_mensaje
-  mi_mensaje = msg.payload.decode()
+  splitTopic = msg.topic.split("/")
+  if (len(splitTopic) > 3 and splitTopic[1] == "LLUBots"):
+    if (splitTopic[2] == "NFC"):
+      LLUBOTS[int(splitTopic[3]) - 1].NFCInfoList = msg.payload.decode()
+    if (splitTopic[2] == "INFO"):
+      LLUBOTS[int(splitTopic[3]) - 1].unpackJson(msg.payload.decode())
+    if (splitTopic[2] == "MODO"):
+      LLUBOTS[int(splitTopic[3]) - 1].ModoList = msg.payload.decode()
 
 
 client = mqtt.Client()
@@ -81,29 +101,6 @@ if (len(sys.argv) >= 3):
 client.connect(ipMQTT,port, 60)
 
 client.loop_start()
-
-#debemos conseguir los datos mediante mqtt
-su_casa1 = 'verde'
-su_ruta1 = '3'
-casa_llegada1 = 'morada'
-
-su_casa2 = 'blanco'
-su_ruta2 = '8'
-casa_llegada2 = 'blanco'
-
-su_casa3 = 'morada'
-su_ruta3 = '1'
-casa_llegada3 = 'amarillo'
-
-su_casa4 = 'rojo'
-su_ruta4 = '7'
-casa_llegada4 = 'rojo'
-
-su_casa5 = 'amarillo'
-su_ruta5 = '0'
-casa_llegada5 = 'verde'
-
-var_llegada1 = 'No ha llegado'
 
 #utilizaremos el tema journal de bootstrap
 app = Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],suppress_callback_exceptions=True)
@@ -199,54 +196,75 @@ app.layout = dbc.Container([
         ),
     ]),
     dcc.Interval(id="Interval1", interval=1000,
-                 n_intervals=0)    
+                 n_intervals=0),
 ], fluid=True)
 
 # Crea un dcc.Store para almacenar las variables
 app.layout.children.append(dcc.Store(id='store', storage_type='memory'))
 
 # Define un callback para actualizar el store con las variables globales
-@app.callback(
-    Output('store', 'data'),
-    Input('LluBots', 'value')
-)
-def actualizar_store(tab):
-    # Aquí actualiza las variables globales según sea necesario
-    # Por ejemplo, si tienes variables globales su_casa1, su_ruta1, casa_llegada1, actualízalas aquí
-    if tab == 'pestaña-LluBot1':
-        su_casa1 = 'Valor nuevo para su_casa1'
-        su_ruta1 = 'Valor nuevo para su_ruta1'
-        casa_llegada1 = 'Valor nuevo para casa_llegada1'
-    elif tab == 'pestaña-LluBot2':
-        su_casa2 = 'Valor nuevo para su_casa2'
-        su_ruta2 = 'Valor nuevo para su_ruta2'
-        casa_llegada2 = 'Valor nuevo para casa_llegada2'
-    elif tab == 'pestaña-LluBot3':
-        su_casa3 = 'Valor nuevo para su_casa2'
-        su_ruta3 = 'Valor nuevo para su_ruta2'
-        casa_llegada3 = 'Valor nuevo para casa_llegada2'
-    # Repite este patrón para las otras pestañas
+# @app.callback(
+#     Output('store', 'data'),
+#     Input('LluBots', 'value')
+# )
+# def actualizar_store(tab):
+#     # Aquí actualiza las variables globales según sea necesario
+#     # Por ejemplo, si tienes variables globales su_casa1, su_ruta1, casa_llegada1, actualízalas aquí
 
-    # Devuelve un diccionario con las variables que deseas almacenar
-    return {
-        'su_casa1': su_casa1,
-        'su_ruta1': su_ruta1,
-        'casa_llegada1': casa_llegada1,
-        'su_casa2': su_casa2,
-        'su_ruta2': su_ruta2,
-        'casa_llegada1': casa_llegada2,
-        'su_casa3': su_casa3,
-        'su_ruta3': su_ruta3,
-        'casa_llegada3': casa_llegada3
-    }
+#     # Devuelve un diccionario con las variables que deseas almacenar
+#     return {
+
+#     }
 
 mensajes=[]
 
+def createLLUbotTab(number):
+  style_rec={ 'text-align': 'center', 'border-radius':'10px','padding': '10px 0px 1px 0px', 'font-size': '20px',
+             'font-width':'bold', 'background-color':'#ffb5b3', 'color':'black'}
+  camino = LLUBOTS[number - 1].NFCInfoList[-1] if len(LLUBOTS[number - 1].NFCInfoList) > 0 else "NOT SENT"
+  casaEncontrada = "NOT SENT"
+  rutaActual = "NOT SENT"
+  modo = LLUBOTS[number - 1].ModoList[-1] if len(LLUBOTS[number - 1].ModoList) > 0 else "NOT SENT"
+  return dbc.Card([dbc.CardBody( [
+    dbc.Row([
+      dbc.Col([
+        dbc.Row([
+          dbc.Row(dbc.Col(html.H4('Tiene que llegar a la casa:', style={'color':'white'}),width=6)),
+          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-su-casa-' + str(number), children=f'{LLUBOTS[0].getHouse(LLUBOTS[number - 1]._ID)}', style=style_rec),width=6))
+        ]),
+        dbc.Row([
+          dbc.Row(dbc.Col(html.H4('Tiene que ir por la ruta:', style={ 'color':'white'}),width=6)),
+          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-su-ruta-' + str(number), children=f'{camino}', style=style_rec),width=6))
+        ]),
+        dbc.Row([
+          dbc.Row(dbc.Col(html.H4('Ha llegado a la casa:', style={  'color':'white'}),width=6)),
+          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-casa-' + str(number) , children=f'{casaEncontrada}', style=style_rec),width=6))
+        ]),
+        dbc.Row([
+          dbc.Row(dbc.Col(html.H4('Se encuentra en la ruta:', style={'color':'white'}),width=6)),
+          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-ruta-' + str(number), children=f'{rutaActual}', style=style_rec),width=6))
+        ]),
+        dbc.Row([
+          dbc.Row(dbc.Col(html.H4('Modo', style={'color':'white'}),width=6)),
+          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-modo-' + str(number), children=f'{modo}', style=style_rec),width=6))
+        ]),
+      ],width=6,class_name="d-flex flex-column align-self-center"),
+      dbc.Col([
+        dbc.Row("DATA"),
+        dbc.Row([dbc.Col("ABC"),dbc.Col("ABC"),dbc.Col("ABC")])      
+      ],width=6)
+    ],style={"height":"100%"})
+  ])
+  ],style={"background-color": "inherit", "border-color": "rgba(255, 0, 0, 0)",'height':'100%'})
+  
 
 @callback(Output('contenido-pestaña', 'children'),
-          Input('LluBots', 'value'))
-def render_content(tab):
-  style_rec={ 'width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}
+          Input('LluBots', 'value'),
+          State('store','data'))
+def render_content(tab,storedMsg):
+  child_history = []
+  if storedMsg != None and storedMsg['history'] != None:
+    child_history = storedMsg['history']
   if tab == 'pestaña-general':
     return dbc.Card(children=[
                             dbc.CardHeader(children=[
@@ -264,7 +282,7 @@ def render_content(tab):
                                 dbc.Col(width=4,children=[
                                   dbc.Row(html.H4(children=["MENSAJES RECIBIDOS"],style={'color':'white'}),style={'background-color':'#b54f4c','padding': '10px'}),
                                   dbc.Row(html.Div(id="ZonaMensajes",
-                                                   children=[],style={"height": "90%",'padding': '10px', 'overflow-y':'scroll',
+                                                   children=child_history,style={"height": "90%",'padding': '10px', 'overflow-y':'scroll',
                                                                                         'font-weight': 'bold','font-family': 'monospace','font-size': '15px',
                                                                                         'background-color':'#ffb5b3', 'color':'black'},
                                                   ),
@@ -275,54 +293,8 @@ def render_content(tab):
                           ],
                     style={"height":"100%",'background-color':'inherit'},
                     class_name='border-0')
-  
-  elif tab == 'pestaña-LluBot1':
-    return html.Div([
-        html.H3('Tiene que llegar a la casa:', style={'color':'white'}),
-        dcc.Markdown(id = 'markdown-su-casa1', children=f'{su_casa1}', style=style_rec),
-        html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
-        print(mi_mensaje),
-        dcc.Markdown(id = 'markdown-su-ruta1', children=f'{su_ruta1}', style=style_rec),
-        html.H3('A llegado a la casa:', style={  'color':'white'}),
-        dcc.Markdown(id = 'markdown-casa1', children=f'{casa_llegada1}', style=style_rec),
-    ])
-  elif tab == 'pestaña-LluBot2':
-      return html.Div([
-          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa2', children=f'{su_casa2}', style=style_rec),
-          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta2', children=f'{su_ruta2}', style=style_rec),
-          html.H3('A llegado a la casa:', style={  'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa2', children=f'{casa_llegada2}', style=style_rec),
-        ])
-  elif tab == 'pestaña-LluBot3':
-      return html.Div([
-          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa3', children=f'{su_casa3}', style=style_rec),
-          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta3', children=f'{su_ruta3}', style=style_rec),
-          html.H3('A llegado a la casa:', style={  'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa3', children=f'{casa_llegada3}', style=style_rec),
-        ])
-  elif tab == 'pestaña-LluBot4':
-      return html.Div([
-          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa4', children=f'{su_casa4}', style=style_rec),
-          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta4', children=f'{su_ruta4}', style=style_rec),
-          html.H3('A llegado a la casa:', style={  'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa4', children=f'{casa_llegada4}', style=style_rec),
-        ])
-  elif tab == 'pestaña-LluBot5':
-      return html.Div([
-          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa5', children=f'{su_casa5}', style=style_rec),
-          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta5', children=f'{su_ruta5}', style=style_rec),
-          html.H3('A llegado a la casa:', style={  'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa5', children=f'{casa_llegada5}', style=style_rec),
-          html.H3(id= 'llegada1', children = f'{var_llegada1}', style={ 'left': '55%', 'top': '65%', 'color':'white'}),
-        ])
+  elif tab[0:-1] == 'pestaña-LluBot':
+    return createLLUbotTab(int(tab[-1]))
 
 @callback(
   [Output('ZonaMensajes', 'children')], 
@@ -336,6 +308,14 @@ def update_data(n_intervals,children):
     mensajes.clear()
   return [children]
 
+@callback(
+   Output('store', 'data'),
+   Input('ZonaMensajes','children'),
+   prevent_initial_call=True)
+def update_store(children):
+  return {
+    'history' : children
+  }
 if __name__ == '__main__':
   # practica3.PitayaSetUp()
   app.run_server(debug=True,use_reloader=False)
