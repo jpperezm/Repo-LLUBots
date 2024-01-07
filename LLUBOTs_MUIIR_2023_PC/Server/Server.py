@@ -194,10 +194,9 @@ app.layout = dbc.Container([
         # Cuadrado a la derecha
         dbc.Col(
             id='contenido-pestaña',
-            style={'width': '20px', 'margin': '20px 50px 30px 55px', 'background-color': '#eb6864', 'border-radius': '10px'},
-            class_name='flex-column'
+            style={'width': '20px', 'max-height' : '500px','height' : '500px','margin': '20px 50px 30px 55px', 'background-color': '#eb6864', 'border-radius': '10px'},
         ),
-    ],class_name="flex-grow-1"),
+    ]),
     dcc.Interval(id="Interval1", interval=1000,
                  n_intervals=0)    
 ], fluid=True)
@@ -256,19 +255,25 @@ def render_content(tab):
                                 ],className="h3 d-flex justify-content-center",
                                   style={'color':'white'})
                               ])
-                            ]),
+                            ],style={'background-color':'inherit'},
+                              class_name='border-0'),
                             dbc.CardBody(children=[
                               dbc.Row(children=[
                                 dbc.Col(width=8),
                                 dbc.Col(width=4,children=[
                                   dbc.Row(html.H4(children=["MENSAJES RECIBIDOS"],style={'color':'white'}),style={'background-color':'#b54f4c','padding': '10px'}),
-                                  dbc.Row(html.Div(id="ZonaMensajes",children=[],style={"overflow-y": "scroll","height": "90%",'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-                                          class_name='flex-grow-1')
+                                  dbc.Row(html.Div(id="ZonaMensajes",
+                                                   children=[],style={"height": "90%",'padding': '10px', 'overflow-y':'scroll',
+                                                                                        'font-weight': 'bold','font-family': 'monospace','font-size': '15px',
+                                                                                        'background-color':'#ffb5b3', 'color':'black'},
+                                                  ),
+                                          class_name='flex-grow-1 overflow-auto')
                                 ], style={"height": "100%"},class_name="d-flex flex-column")
-                              ],style={"height":"100%"},class_name='flex-grow-1')
-                            ],style={"height":"100%"})
+                              ],style={"height":"100%"})
+                            ],className='overflow-hidden')
                           ],
-                    style={"height":"100%",'background-color':'inherit'})
+                    style={"height":"100%",'background-color':'inherit'},
+                    class_name='border-0')
   
   elif tab == 'pestaña-LluBot1':
     return html.Div([
