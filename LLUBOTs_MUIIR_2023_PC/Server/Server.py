@@ -2,7 +2,43 @@
 from dash import Dash, dcc, html, Input, Output, State, ctx, callback
 import paho.mqtt.client as mqtt
 import dash_bootstrap_components as dbc
+from datetime import datetime
+import json
+import sys
 
+class LLUBot:
+  _ID = 0
+  #NFC / X
+  NFCInfo = []
+  #INFO / X
+  SigLinea = []
+  UltraSon = []
+  Bateria = []
+  #Modo / X
+  Modo = []
+  
+  def unpackJson(self,json_str):
+    info = json.loads(json_str)
+    self.SigLinea.append(info["SigLinea"])
+    self.UltraSon.append(info["UltraSon"])
+    self.Bateria.append(info["Bateria"])
+  
+  def __init__(self, id):
+    self._ID = id
+  
+  def clear(self):
+    self.NFCInfo = []
+    self.SigLinea = []
+    self.UltraSon = []
+    self.Modo = []
+    self.Bateria = []
+
+LLUBOTS = [LLUBot(1),LLUBot(2),LLUBot(3),LLUBot(4),LLUBot(5)]
+# Suscribe el cliente a los puntos de info del llubot endpoints
+def subscribe_ULLBOT(client,endPoint):
+  client.subscribe("/LLUBots/NFC/" + endPoint)
+  client.subscribe("/LLUBots/INFO/" + endPoint)
+  client.subscribe("/LLUBots/MODO/" + endPoint)
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -12,23 +48,36 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     client.subscribe("START")
     client.subscribe("STOP")
+    subscribe_ULLBOT(client,"1")
+    subscribe_ULLBOT(client,"2")
+    subscribe_ULLBOT(client,"3")
+    subscribe_ULLBOT(client,"4")
+    subscribe_ULLBOT(client,"5")
 
-mensaje = ["mensaje1"]
+mensajes = []
 mi_mensaje = 0
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-  mensaje.append(msg.payload.decode())
-  print(msg.topic+" "+str(msg.payload))
+  new_msg = "[" + msg.topic + ":" + str(datetime.utcfromtimestamp(msg.timestamp)) + "]:"
+  new_msg +=  msg.payload.decode()
+  mensajes.append(new_msg)
   global mi_mensaje
-  mi_mensaje = msg.payload
+  mi_mensaje = msg.payload.decode()
 
 
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
 
+ipMQTT = "51.20.185.180"
+port = 1883
+if (len(sys.argv) >= 2):
+  ipMQTT =  sys.argv[1]
+if (len(sys.argv) >= 3):
+  port = sys.argv[2]
+
 #IP del AWS de Jaime con el que vamos a trabajar
-client.connect("51.20.185.180", 1883, 60)
+client.connect(ipMQTT,port, 60)
 
 client.loop_start()
 
@@ -56,7 +105,7 @@ casa_llegada5 = 'verde'
 var_llegada1 = 'No ha llegado'
 
 #utilizaremos el tema journal de bootstrap
-app = Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL])
+app = Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],suppress_callback_exceptions=True)
 # Estilos para las pestañas
 tabs_styles = {
     'height': '84px',
@@ -97,7 +146,7 @@ app.layout = dbc.Container([
         dbc.Col(
             dcc.Tabs(
                 id="LluBots",
-                value='pestaña-LluBot1',
+                value='pestaña-general',
                 vertical=True,
                 children=[
                     dcc.Tab(
@@ -145,9 +194,12 @@ app.layout = dbc.Container([
         # Cuadrado a la derecha
         dbc.Col(
             id='contenido-pestaña',
-            style={'width': '20px', 'height': '500px', 'margin': '20px 50px 30px 55px', 'background-color': '#eb6864', 'border-radius': '10px'},
+            style={'width': '20px', 'margin': '20px 50px 30px 55px', 'background-color': '#eb6864', 'border-radius': '10px'},
+            class_name='flex-column'
         ),
-    ]),
+    ],class_name="flex-grow-1"),
+    dcc.Interval(id="Interval1", interval=1000,
+                 n_intervals=0)    
 ], fluid=True)
 
 # Crea un dcc.Store para almacenar las variables
@@ -188,74 +240,95 @@ def actualizar_store(tab):
         'casa_llegada3': casa_llegada3
     }
 
-
+mensajes=[]
 
 
 @callback(Output('contenido-pestaña', 'children'),
           Input('LluBots', 'value'))
 def render_content(tab):
-  if tab == 'pestaña-LluBot1':
+  style_rec={ 'width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}
+  if tab == 'pestaña-general':
+    return dbc.Card(children=[
+                            dbc.CardHeader(children=[
+                              dbc.Row(children=[
+                                html.H3(children=[
+                                  "Información general LLUBOTS"
+                                ],className="h3 d-flex justify-content-center",
+                                  style={'color':'white'})
+                              ])
+                            ]),
+                            dbc.CardBody(children=[
+                              dbc.Row(children=[
+                                dbc.Col(width=8),
+                                dbc.Col(width=4,children=[
+                                  dbc.Row(html.H4(children=["MENSAJES RECIBIDOS"],style={'color':'white'}),style={'background-color':'#b54f4c','padding': '10px'}),
+                                  dbc.Row(html.Div(id="ZonaMensajes",children=[],style={"overflow-y": "scroll","height": "90%",'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
+                                          class_name='flex-grow-1')
+                                ], style={"height": "100%"},class_name="d-flex flex-column")
+                              ],style={"height":"100%"},class_name='flex-grow-1')
+                            ],style={"height":"100%"})
+                          ],
+                    style={"height":"100%",'background-color':'inherit'})
+  
+  elif tab == 'pestaña-LluBot1':
     return html.Div([
-      html.Div([
-        html.H3('Tiene que llegar a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '25%', 'color':'white'}),
-        dcc.Markdown(id = 'markdown-su-casa1', children=f'{su_casa1}', style={'position': 'absolute', 'left': '30%', 'top': '32%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-        html.H3('Se encuentra en la ruta:', style={'position': 'absolute', 'left': '25%', 'top': '45%', 'color':'white'}),
+        html.H3('Tiene que llegar a la casa:', style={'color':'white'}),
+        dcc.Markdown(id = 'markdown-su-casa1', children=f'{su_casa1}', style=style_rec),
+        html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
         print(mi_mensaje),
-        dcc.Markdown(id = 'markdown-su-ruta1', children=f'{su_ruta1}', style={'position': 'absolute', 'left': '30%', 'top': '52%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-        html.H3('A llegado a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '65%', 'color':'white'}),
-        dcc.Markdown(id = 'markdown-casa1', children=f'{casa_llegada1}', style={'position': 'absolute', 'left': '30%', 'top': '72%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-        
-
-        
-      ]),         
+        dcc.Markdown(id = 'markdown-su-ruta1', children=f'{su_ruta1}', style=style_rec),
+        html.H3('A llegado a la casa:', style={  'color':'white'}),
+        dcc.Markdown(id = 'markdown-casa1', children=f'{casa_llegada1}', style=style_rec),
     ])
   elif tab == 'pestaña-LluBot2':
       return html.Div([
-        html.Div([
-          html.H3('Tiene que llegar a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '25%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa2', children=f'{su_casa2}', style={'position': 'absolute', 'left': '30%', 'top': '32%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('Se encuentra en la ruta:', style={'position': 'absolute', 'left': '25%', 'top': '45%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta2', children=f'{su_ruta2}', style={'position': 'absolute', 'left': '30%', 'top': '52%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('A llegado a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '65%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa2', children=f'{casa_llegada2}', style={'position': 'absolute', 'left': '30%', 'top': '72%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-        ]), 
-      ])
+          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-casa2', children=f'{su_casa2}', style=style_rec),
+          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-ruta2', children=f'{su_ruta2}', style=style_rec),
+          html.H3('A llegado a la casa:', style={  'color':'white'}),
+          dcc.Markdown(id = 'markdown-casa2', children=f'{casa_llegada2}', style=style_rec),
+        ])
   elif tab == 'pestaña-LluBot3':
       return html.Div([
-        html.Div([
-          html.H3('Tiene que llegar a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '25%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa3', children=f'{su_casa3}', style={'position': 'absolute', 'left': '30%', 'top': '32%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('Se encuentra en la ruta:', style={'position': 'absolute', 'left': '25%', 'top': '45%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta3', children=f'{su_ruta3}', style={'position': 'absolute', 'left': '30%', 'top': '52%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('A llegado a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '65%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa3', children=f'{casa_llegada3}', style={'position': 'absolute', 'left': '30%', 'top': '72%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-        ]), 
-      ])
+          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-casa3', children=f'{su_casa3}', style=style_rec),
+          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-ruta3', children=f'{su_ruta3}', style=style_rec),
+          html.H3('A llegado a la casa:', style={  'color':'white'}),
+          dcc.Markdown(id = 'markdown-casa3', children=f'{casa_llegada3}', style=style_rec),
+        ])
   elif tab == 'pestaña-LluBot4':
       return html.Div([
-        html.Div([
-          html.H3('Tiene que llegar a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '25%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa4', children=f'{su_casa4}', style={'position': 'absolute', 'left': '30%', 'top': '32%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('Se encuentra en la ruta:', style={'position': 'absolute', 'left': '25%', 'top': '45%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta4', children=f'{su_ruta4}', style={'position': 'absolute', 'left': '30%', 'top': '52%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('A llegado a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '65%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa4', children=f'{casa_llegada4}', style={'position': 'absolute', 'left': '30%', 'top': '72%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-        ]), 
-      ])
+          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-casa4', children=f'{su_casa4}', style=style_rec),
+          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-ruta4', children=f'{su_ruta4}', style=style_rec),
+          html.H3('A llegado a la casa:', style={  'color':'white'}),
+          dcc.Markdown(id = 'markdown-casa4', children=f'{casa_llegada4}', style=style_rec),
+        ])
   elif tab == 'pestaña-LluBot5':
       return html.Div([
-        html.Div([
-          html.H3('Tiene que llegar a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '25%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-casa5', children=f'{su_casa5}', style={'position': 'absolute', 'left': '30%', 'top': '32%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('Se encuentra en la ruta:', style={'position': 'absolute', 'left': '25%', 'top': '45%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-su-ruta5', children=f'{su_ruta5}', style={'position': 'absolute', 'left': '30%', 'top': '52%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3('A llegado a la casa:', style={'position': 'absolute', 'left': '25%', 'top': '65%', 'color':'white'}),
-          dcc.Markdown(id = 'markdown-casa5', children=f'{casa_llegada5}', style={'position': 'absolute', 'left': '30%', 'top': '72%','width': '200px', 'height': '50px','text-align': 'center', 'padding': '10px', 'font-size': '20px', 'background-color':'#ffb5b3', 'color':'black'}),
-          html.H3(id= 'llegada1', children = f'{var_llegada1}', style={'position': 'absolute', 'left': '55%', 'top': '65%', 'color':'white'}),
-        ]), 
-      ])
+          html.H3('Tiene que llegar a la casa:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-casa5', children=f'{su_casa5}', style=style_rec),
+          html.H3('Se encuentra en la ruta:', style={ 'color':'white'}),
+          dcc.Markdown(id = 'markdown-su-ruta5', children=f'{su_ruta5}', style=style_rec),
+          html.H3('A llegado a la casa:', style={  'color':'white'}),
+          dcc.Markdown(id = 'markdown-casa5', children=f'{casa_llegada5}', style=style_rec),
+          html.H3(id= 'llegada1', children = f'{var_llegada1}', style={ 'left': '55%', 'top': '65%', 'color':'white'}),
+        ])
 
-
+@callback(
+  [Output('ZonaMensajes', 'children')], 
+  Input('Interval1', 'n_intervals'),
+  State('ZonaMensajes','children'),
+  prevent_initial_call=True)
+def update_data(n_intervals,children):
+  for msg in mensajes:
+    children.append(html.P(children=msg))
+  if len(mensajes) != 0:
+    mensajes.clear()
+  return [children]
 
 if __name__ == '__main__':
   # practica3.PitayaSetUp()
