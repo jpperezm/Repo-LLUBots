@@ -1,5 +1,5 @@
 #librerías necesarias
-from dash import Dash, dcc, html, Input, Output, State, ctx, callback
+from dash import Dash, dcc, html, Input, Output, State, MATCH,ALL,no_update ,ctx, callback
 import paho.mqtt.client as mqtt
 import dash_bootstrap_components as dbc
 from datetime import datetime
@@ -8,19 +8,7 @@ import time
 import sys
 
 class LLUBot:
-  _ID = 0
-  #NFC / X
-  NFCInfoList = []
-  #INFO / X
-  SigLineaList = []
-  UltraSonList = []
-  BateriaList = []
-  #Modo / X
-  ModoList = []
-  
-  Ruta = 0
-  EnCasa = False
-  
+
   def getHouse(self,number):
     if (number == 1):
       return "Blanca"
@@ -36,11 +24,30 @@ class LLUBot:
   def unpackJson(self,json_str):
     info = json.loads(json_str)
     self.SigLineaList.append(info["SigLinea"])
+    self.LastSigLinea = info["SigLinea"]
     self.UltraSonList.append(info["UltraSon"])
+    self.LastUS = info["UltraSon"]
     self.BateriaList.append(info["Bateria"])
+    self.LastBat = info["Bateria"]
   
   def __init__(self, id):
     self._ID = id
+    #NFC / X
+    self.NFCInfoList = []
+    self.LastNFC = ""
+    #INFO / X
+    self.SigLineaList = []
+    self.LastSigLinea = ""
+    self.UltraSonList = []
+    self.LastUS = ""
+    self.BateriaList = []
+    self.LastBat = ""
+    #Modo / X
+    self.ModoList = []
+    self.LastModo = ""
+
+    self.Ruta = 0
+    self.EnCasa = False
   
   def clear(self):
     self.NFCInfoList = []
@@ -79,11 +86,15 @@ def on_message(client, userdata, msg):
   splitTopic = msg.topic.split("/")
   if (len(splitTopic) > 3 and splitTopic[1] == "LLUBots"):
     if (splitTopic[2] == "NFC"):
-      LLUBOTS[int(splitTopic[3]) - 1].NFCInfoList = msg.payload.decode()
+      LLUBOTS[int(splitTopic[3]) - 1].NFCInfoList.append(msg.payload.decode())
+      LLUBOTS[int(splitTopic[3]) - 1].LastNFC = msg.payload.decode()
+      
     if (splitTopic[2] == "INFO"):
       LLUBOTS[int(splitTopic[3]) - 1].unpackJson(msg.payload.decode())
     if (splitTopic[2] == "MODO"):
-      LLUBOTS[int(splitTopic[3]) - 1].ModoList = msg.payload.decode()
+      LLUBOTS[int(splitTopic[3]) - 1].ModoList.append(msg.payload.decode())
+      LLUBOTS[int(splitTopic[3]) - 1].LastModo = msg.payload.decode()
+
 
 
 client = mqtt.Client()
@@ -204,7 +215,7 @@ app.layout.children.append(dcc.Store(id='store', storage_type='memory'))
 
 # Define un callback para actualizar el store con las variables globales
 # @app.callback(
-#     Output('store', 'data'),
+#     Output('store', 'data')
 #     Input('LluBots', 'value')
 # )
 # def actualizar_store(tab):
@@ -218,14 +229,35 @@ app.layout.children.append(dcc.Store(id='store', storage_type='memory'))
 
 mensajes=[]
 
-def createLLUbotTab(number):
+def createDataColumn(data,id_data,widthW,title):
+  return dbc.Col(width=widthW,children=[
+    dbc.Row(html.H4(children=[title],style={'color':'white'}),style={'background-color':'#b54f4c','padding': '10px','text-align': 'center'}),
+    dbc.Row(html.Div(id=id_data,
+                      children=data,style={"height": "90%",'padding': '10px', 'overflow-y':'scroll',
+                                                          'font-weight': 'bold','font-family': 'monospace','font-size': '13px',
+                                                          'background-color':'#ffb5b3', 'color':'black'},
+                    ),
+            class_name='flex-grow-1 overflow-auto')
+  ], style={"height": "100%"},class_name="d-flex flex-column")
+
+def createLLUbotTab(number, data):
   style_rec={ 'text-align': 'center', 'border-radius':'10px','padding': '10px 0px 1px 0px', 'font-size': '20px',
              'font-width':'bold', 'background-color':'#ffb5b3', 'color':'black'}
-  camino = LLUBOTS[number - 1].NFCInfoList[-1] if len(LLUBOTS[number - 1].NFCInfoList) > 0 else "NOT SENT"
+  camino = LLUBOTS[number - 1].LastNFC if LLUBOTS[number - 1].LastNFC != "" else "NOT SENT"
   casaEncontrada = "NOT SENT"
   rutaActual = "NOT SENT"
-  modo = LLUBOTS[number - 1].ModoList[-1] if len(LLUBOTS[number - 1].ModoList) > 0 else "NOT SENT"
-  return dbc.Card([dbc.CardBody( [
+  modo = LLUBOTS[number - 1].LastModo if LLUBOTS[number - 1].LastModo != "" else "NOT SENT"
+  
+  history = {'US' + str(number):[],'SigueLinea' + str(number):[],'Bateria' + str(number):[]}
+  if data != None:
+    if ('US' + str(number)) in data:
+      history['US' + str(number)] =  [x for xs in data['US' + str(number)]for x in xs]
+    if ('SigueLinea' + str(number)) in data:
+      history['SigueLinea' + str(number)] =[x for xs in data['SigueLinea' + str(number)]for x in xs] 
+    if ('Bateria' + str(number)) in data:
+      history['Bateria' + str(number)] = [x for xs in data['Bateria' + str(number)]for x in xs]
+  
+  return [dbc.Card([dbc.CardBody( [
     dbc.Row([
       dbc.Col([
         dbc.Row([
@@ -250,12 +282,17 @@ def createLLUbotTab(number):
         ]),
       ],width=6,class_name="d-flex flex-column align-self-center"),
       dbc.Col([
-        dbc.Row("DATA"),
-        dbc.Row([dbc.Col("ABC"),dbc.Col("ABC"),dbc.Col("ABC")])      
-      ],width=6)
+        dbc.Row(html.H4('Datos', style={'color':'white','text-align': 'center'})),
+        dbc.Row([
+          createDataColumn(history['US' + str(number)],{'type': "UltraSonido", 'index' : str(number)},4,"UltraSonido"),
+          createDataColumn(history['SigueLinea' + str(number)],{'type': "SigueLinea", 'index' : str(number)},4,"SigueLinea"),
+          createDataColumn(history['Bateria' + str(number)],{'type': "Bateria", 'index' : str(number)},4,"Bateria"),
+          ],style={"height":"100%"},class_name="d-flex")
+      ],width=6,style={"max-height":"100%"})
     ],style={"height":"100%"})
-  ])
-  ],style={"background-color": "inherit", "border-color": "rgba(255, 0, 0, 0)",'height':'100%'})
+  ],className='overflow-hidden')
+  ],style={"background-color": "inherit", "border-color": "rgba(255, 0, 0, 0)",'height':'100%'}),
+        dcc.Interval(id={'type' : 'Interval', 'index': str(number)}, interval=1000,n_intervals=0),]
   
 
 @callback(Output('contenido-pestaña', 'children'),
@@ -279,22 +316,14 @@ def render_content(tab,storedMsg):
                             dbc.CardBody(children=[
                               dbc.Row(children=[
                                 dbc.Col(width=8),
-                                dbc.Col(width=4,children=[
-                                  dbc.Row(html.H4(children=["MENSAJES RECIBIDOS"],style={'color':'white'}),style={'background-color':'#b54f4c','padding': '10px'}),
-                                  dbc.Row(html.Div(id="ZonaMensajes",
-                                                   children=child_history,style={"height": "90%",'padding': '10px', 'overflow-y':'scroll',
-                                                                                        'font-weight': 'bold','font-family': 'monospace','font-size': '15px',
-                                                                                        'background-color':'#ffb5b3', 'color':'black'},
-                                                  ),
-                                          class_name='flex-grow-1 overflow-auto')
-                                ], style={"height": "100%"},class_name="d-flex flex-column")
+                                createDataColumn(child_history,"ZonaMensajes",4,"Mensajes Recibidos"),
                               ],style={"height":"100%"})
                             ],className='overflow-hidden')
                           ],
                     style={"height":"100%",'background-color':'inherit'},
                     class_name='border-0')
   elif tab[0:-1] == 'pestaña-LluBot':
-    return createLLUbotTab(int(tab[-1]))
+    return createLLUbotTab(int(tab[-1]),storedMsg)
 
 @callback(
   [Output('ZonaMensajes', 'children')], 
@@ -309,13 +338,68 @@ def update_data(n_intervals,children):
   return [children]
 
 @callback(
-   Output('store', 'data'),
+  [Output({'type':'UltraSonido', 'index': MATCH},'children'),
+   Output({'type':'SigueLinea', 'index': MATCH},'children'),
+   Output({'type':'Bateria', 'index': MATCH},'children')],
+  Input({'type':'Interval', 'index': MATCH},'n_intervals'),
+  State({'type':'UltraSonido', 'index': MATCH},'children'),
+  State({'type':'SigueLinea', 'index': MATCH},'children'),
+  State({'type':'Bateria', 'index': MATCH},'children')
+)
+def checkWOrth(n_intervals,UltraSonido,SigLin,Bat):
+  trigger = ctx.triggered_id
+  if not trigger:
+    return no_update
+  
+  index_number = int(trigger["index"])
+  
+  def writeInfo(list,objChildren):
+    for msg in list:
+      strMsg = "[" + str(datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")) +"]:" + msg
+      objChildren.append(html.P(children=strMsg))
+
+    list.clear()
+  
+  writeInfo(LLUBOTS[index_number - 1].UltraSonList,UltraSonido)
+  writeInfo(LLUBOTS[index_number - 1].SigLineaList,SigLin)
+  writeInfo(LLUBOTS[index_number - 1].BateriaList,Bat)
+  
+  return [UltraSonido,SigLin,Bat]
+
+@callback(
+   Output('store', 'data',allow_duplicate=True),
    Input('ZonaMensajes','children'),
+   State('store', 'data'),
    prevent_initial_call=True)
-def update_store(children):
-  return {
-    'history' : children
-  }
+def update_store(children,data):
+  if data == None:
+    return {'history' : children}
+
+  data['history'] = children
+  return data
+
+@callback(
+   Output('store', 'data',allow_duplicate=True),
+   Input({'type':'UltraSonido', 'index': ALL},'children'),
+   Input({'type':'SigueLinea', 'index': ALL},'children'),
+   Input({'type':'Bateria', 'index': ALL},'children'),
+   State('store', 'data'),
+   prevent_initial_call=True)
+def update_store(childrenUS,childrenSL,childrenBt,data):
+  trigger = ctx.triggered_id
+  if trigger:
+      if data == None:
+        return {'US' + trigger['index']  : childrenUS,
+                'SigueLinea' + trigger['index']  : childrenSL,
+                'Bateria' + trigger['index']  : childrenBt}
+
+      data['US' + trigger['index']] = childrenUS
+      data['SigueLinea' + trigger['index']] = childrenSL
+      data['Bateria' + trigger['index']] = childrenBt
+      return data
+  return no_update
+
+  
 if __name__ == '__main__':
   # practica3.PitayaSetUp()
   app.run_server(debug=True,use_reloader=False)
