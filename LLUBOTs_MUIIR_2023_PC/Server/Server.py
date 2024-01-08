@@ -315,7 +315,13 @@ def render_content(tab,storedMsg):
                               class_name='border-0'),
                             dbc.CardBody(children=[
                               dbc.Row(children=[
-                                dbc.Col(width=8),
+                                dbc.Col([
+                                    dbc.Input(id='mqtt-topic-input', placeholder='Introduce el topic...', type='text', className='mb-2'),
+                                    dbc.Input(id='mqtt-input', placeholder='Introduce un mensaje...', type='text'),
+                                    dbc.Button('OK', id='mqtt-publish-button', color='primary', className='mt-2'),
+                                    html.Div(id='mqtt-publish-output')
+                                ]),
+                                dbc.Col(width=2),
                                 createDataColumn(child_history,"ZonaMensajes",4,"Mensajes Recibidos"),
                               ],style={"height":"100%"})
                             ],className='overflow-hidden')
@@ -324,6 +330,22 @@ def render_content(tab,storedMsg):
                     class_name='border-0')
   elif tab[0:-1] == 'pestaña-LluBot':
     return createLLUbotTab(int(tab[-1]),storedMsg)
+
+
+@callback(
+    Output('mqtt-publish-output', 'children'),
+    Input('mqtt-publish-button', 'n_clicks'),
+    State('mqtt-topic-input', 'value'),
+    State('mqtt-input', 'value'),
+    prevent_initial_call=True
+)
+def publish_mqtt_message(n_clicks, topic, message):
+    if message and topic:
+        client.publish(topic, message)
+        return f'Mensaje "{message}" publicado en {topic}'
+    return 'Por favor introduce un topic y un mensaje para publicar'
+
+
 
 @callback(
   [Output('ZonaMensajes', 'children')], 
