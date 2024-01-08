@@ -1,33 +1,53 @@
+#include <Arduino.h>
 #include <Wire.h>
 
 #include "../include/I2CSensorHandler.h"
 
 
-void setupI2CSensors() {
-  // Inicializa los sensores I2C aquí
-  // Ejemplo:
-  // Wire.begin();
-  // Wire.setClock(400000);
+void initializeI2CSensors() {
+  Wire.begin();
 }
 
 
-float getLeftSensorData() {
-  return 0.0;
+void sendCommand(char command) {
+  // m, p, g, n, i, d
+  Wire.beginTransmission(8);
+  Wire.write(command);
+  Wire.endTransmission();
 }
 
 
-float getRightSensorData() {
-  return 1.0;
+void sendFollowLineCommand() {
+  sendCommand('m');
 }
 
 
+void sendStopCommand() {
+  sendCommand('p');
+}
 
-float getUltrasonicData() {
-  // Implementa la comunicación I2C aquí para obtener los datos del sensor
-  // Ejemplo:
-  // Wire.beginTransmission(sensorAddress);
-  // ... Envía y recibe datos ...
-  // Wire.endTransmission();
-  // return data;
-  return 0.0;
+
+void sendTurn180Command() {
+  sendCommand('g');
+}
+
+
+void sendTurn90Command() {
+  sendCommand('n');
+}
+
+
+void sendLeftSensorData(uint8_t data) {
+  Wire.beginTransmission(8);
+  Wire.write('i');
+  Wire.write(data);
+  Wire.endTransmission();
+}
+
+
+void sendRightSensorData(uint8_t data) {
+  Wire.beginTransmission(8);
+  Wire.write('d');
+  Wire.write(data);
+  Wire.endTransmission();
 }

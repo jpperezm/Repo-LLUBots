@@ -17,3 +17,5 @@ void checkMQTTConnection();
 void handleMQTTLoop();
 void callback(char *topic, byte *payload, unsigned int length);
 void publishRobotStatus();
+void publishRoundabout(String status);
+void publishLLUBotHomeLocation(int homeID);

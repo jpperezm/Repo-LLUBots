@@ -4,6 +4,7 @@
 
 #include "../include/clientMQTT.h"
 #include "../include/robotStatusCollector.h"
+#include "../include/robotStateMachine.h"
 
 WiFiClient wifiClient;
 
@@ -14,8 +15,9 @@ const char *mqtt_broker = "51.20.185.180";
 int LLUBotID;
 
 const char *home_topic = "/LLUBot/NFC/";
-const char *config_topic = "/LLUBot/config";
+const char *config_topic = "/LLUBot/config/";
 const char *info_topic = "/LLUBot/info";
+const char *roundabout_topic = "/LLUBot/roundabout";
 
 MQTTConnectionState mqttState = kMQTTDisconnected;
 unsigned long mqttConnectStartMillis = 0;
@@ -85,14 +87,22 @@ void callback(char *topic, byte *payload, unsigned int length) {
   }
   String message = convertPayloadToString(payload, length);
 
-  if (String(topic) == home_topic) {
-    Serial.println("Going home");
-    //goHome();
+  if (String(topic) == "START") {
+    startCommandReceived = true;
+  } else if (String(topic) == "RESET") {
+    resetCommandReceived = true;
+  } else if (String(topic) == home_topic + LLUBotID) {
+    goalStreetName = message.toInt();
+  } else if (String(topic) == roundabout_topic) {
+    numberOfLLUBotsOnRoundabout++;  // Assuming my own message arrives
+  } else if (String(topic) == String(config_topic) + "numLLUBots") {
+    numberOfLLUBots = message.toInt();
+  } else if (String(topic) == String(config_topic) + String(LLUBotID) + "/home") {
+    homeName = message.toInt();
+  } else if (String(topic) == String(config_topic) + String(LLUBotID) + "/initialStreet") {
+    initialStreetName = message.toInt();
   }
 
-  if (String(topic) == config_topic) {
-    //processConfigCommand(message);
-  }
   Serial.println();
 }
 
@@ -104,4 +114,21 @@ void publishRobotStatus() {
     establishMQTTConnection();
   }
   MQTTClient.publish(info_topic, jsonData.c_str());
+}
+
+
+void publishRoundabout(String status) {
+  if (!MQTTClient.connected()) {
+    establishMQTTConnection();
+  }
+  MQTTClient.publish(roundabout_topic, status.c_str());
+}
+
+
+void publishLLUBotHomeLocation(int homeID) {
+  if (!MQTTClient.connected()) {
+    establishMQTTConnection();
+  }
+  MQTTClient.publish(home_topic + homeID, String(initialStreetName).c_str());
+  LLUBotLocationSent = true;
 }

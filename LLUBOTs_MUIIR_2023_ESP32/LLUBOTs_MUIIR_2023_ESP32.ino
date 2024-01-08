@@ -10,10 +10,16 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <MFRC522.h>
 
 #include "include/wifiHandler.h"
 #include "include/clientMQTT.h"
 #include "include/robotStatusCollector.h"
+#include "include/robotStateMachine.h"
+#include "include/sensorsHandler.h"
+#include "include/I2CSensorHandler.h"
 
 
 void setup() {
@@ -23,13 +29,15 @@ void setup() {
 
   initializeMQTTConnection();
   establishMQTTConnection();
+  initializeI2CSensors();
 }
 
 
 void loop() {
   checkWifiConnection();
   handleMQTTLoop();
-  Serial.println("Robot Status: " + generateRobotStatusJson());
-  delay(1000);
+  updateRobotState();
+  handleRobotState();
+  publishRobotStatus();
 }
 
