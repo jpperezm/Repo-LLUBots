@@ -6,19 +6,20 @@
  * 
  * Modified by: MUIIR 2023 students.
  */
-
-#include <DMotor_mod.h>
+ 
 #include <Wire.h>
+#include <AccelStepper.h>
+#include <AFMotor.h>
 
 #include "include/movements.h"
 #include "include/lineFollower.h"
 
-uint8_t speed = 100; // in rpm
+float speed = 400.0; // in rpm
 uint8_t initServoAngle = 90;  // in degrees
 bool isLineFollowerActivated = false;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   initMotors(speed);
 
@@ -29,9 +30,7 @@ void setup() {
 
 
 void loop() {
-  if (isLineFollowerActivated) {
-    lineFollower(leftIRSensorRead, rightIRSensorRead);
-  }
+  lineFollower(leftIRSensorRead, rightIRSensorRead);
 }
 
 

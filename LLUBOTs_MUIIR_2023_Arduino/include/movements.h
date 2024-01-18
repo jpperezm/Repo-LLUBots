@@ -1,8 +1,3 @@
-class AF_Stepper;
-
-extern AF_Stepper motorR;
-extern AF_Stepper motorL;
-
 extern int next_order;
 extern bool movementRequest;
 const int n_orders = 100;  //Maximum number of oreders that the LLUBot may execute
@@ -18,7 +13,7 @@ const int stepToMicrostep = 8;      // 8 microsteps are 1 step within the steppe
 const float twoPi = 2 * 3.1416;     // geometry use of 2 * pi in the perimeter of a circle
 
 
-void initMotors(uint16_t speed);
+void initMotors(float speed);
 void movement(char way);
 void goStraight(char way, float cm);
 void turn (char way, float angle);

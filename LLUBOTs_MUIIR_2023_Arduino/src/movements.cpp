@@ -1,17 +1,40 @@
-#include <DMotor_mod.h>
 #include <Arduino.h>
+#include <AccelStepper.h>
+#include <AFMotor.h>
 #include "../include/movements.h"
 
 AF_Stepper motorR(256, 1);    // Right motor  (stepper)
 AF_Stepper motorL(256, 2);    // Left  motor  (stepper)
 
+void forwardstep1() {  
+  motorR.onestep(FORWARD, SINGLE);
+}
+void backwardstep1() {  
+  motorR.onestep(BACKWARD, SINGLE);
+}
+// wrappers for the second motor!
+void forwardstep2() {  
+  motorL.onestep(FORWARD, SINGLE);
+}
+void backwardstep2() {  
+  motorL.onestep(BACKWARD, SINGLE);
+}
+
+AccelStepper stepperR(forwardstep1, backwardstep1);
+AccelStepper stepperL(forwardstep2, backwardstep2);
+
 char orders[100];  //Orders executed
 int distances[100];  //Distances moved in each order
 int next_order = 0;  //the next order and distance to fill
 
-void initMotors(uint16_t speed) {
-  motorR.setSpeed(speed);
-  motorL.setSpeed(speed);
+void initMotors(float speed) {
+    stepperR.setMaxSpeed(speed);
+    stepperR.setAcceleration(200.0);
+    stepperR.moveTo(1000000);
+    
+    stepperL.setMaxSpeed(speed);
+    stepperL.setAcceleration(200.0);
+    stepperL.moveTo(1000000);
 }
 
 void movement(char way) {
@@ -39,22 +62,22 @@ void movement(char way) {
   if (movementRequest == 1){
     if (way == 'F') {
       Serial.println("Going forward");
-      motorR.step(1, FORWARD, SINGLE);
-      motorL.step(1, FORWARD, SINGLE);
+      stepperR.run();
+      stepperL.run();
       //distances[next_order]++;
     } else if (way == 'B') {
       Serial.println("Going back");
-      motorR.step(1, BACKWARD, SINGLE);
-      motorL.step(1, BACKWARD, SINGLE);
+      stepperR.run();
+      stepperL.run();
       //distances[next_order]++;
     } else if (way == 'R') {
       //motorR.step(1, BACKWARD, SINGLE);
       Serial.println("Going right");
-      motorL.step(1, FORWARD, SINGLE);
+      stepperL.run();
       //distances[next_order]++;
     } else if (way == 'L') {
       Serial.println("Going left");
-      motorR.step(1, FORWARD, SINGLE);
+      stepperR.run();
       //motorL.step(1, BACKWARD, SINGLE);
       //distances[next_order]++;
     }

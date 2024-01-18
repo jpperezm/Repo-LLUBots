@@ -57,12 +57,11 @@ void lineFollower(int leftIRSensorRead, int rightIRSensorRead) {
 //d, i, u, n
 void homeDetected() {
 
-
   turn ('R', 45); 
 
   while(rightIRSensorRead != 1)  //Mientras no se detecte que el sensor de la derecha ha alcanzado la linea ...
   {
-    lecturaSensorIR();
+    //lecturaSensorIR();
     turn ('R', 5);              //Gira a la derecha 5 grados
   }
 }
