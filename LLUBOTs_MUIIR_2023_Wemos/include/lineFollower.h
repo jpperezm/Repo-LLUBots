@@ -1,11 +1,9 @@
-const int servoPin = D7;
-const int IRSensorOnePin = A0;
+//const int servoPin = D7;
+//const int IRSensorOnePin = A0;
 
-extern int analog;
-extern int lecturaSensorIzq;
-extern int lecturaSensorDer;
+extern int leftIRSensorRead;
+extern int rightIRSensorRead;
 
 extern bool movementRequest;
 
-void lecturaSensorIR();
-void sigueLineas(int lecturaSensorIzq, int lecturaSensorDer);
+void lineFollower(int leftIRSensorRead, int rightIRSensorRead);

@@ -26,18 +26,21 @@ void setup() {
   Serial.begin(115200);
 
   initializeWifiConnection();
-
   initializeMQTTConnection();
-  establishMQTTConnection();
+
   initializeI2CSensors();
 }
 
 
 void loop() {
+  unsigned long now = millis();
+  static unsigned long lastMsg = 0;
   checkWifiConnection();
   handleMQTTLoop();
-  updateRobotState();
   handleRobotState();
-  publishRobotStatus();
+  updateRobotState();
+  if (now - lastMsg > 10000) {
+    lastMsg = now;
+    publishRobotStatus();
+  }
 }
-

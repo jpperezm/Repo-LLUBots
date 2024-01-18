@@ -13,14 +13,9 @@
 #include "include/movements.h"
 #include "include/lineFollower.h"
 
-//const int lowBatteryLedPin = D0;
-//const int batteryVoltagePin = D4;
-
 uint8_t speed = 100; // in rpm
 uint8_t initServoAngle = 90;  // in degrees
-
-char s;
-bool isStarted = 0;
+bool isLineFollowerActivated = false;
 
 void setup() {
   Serial.begin(115200);
@@ -30,37 +25,43 @@ void setup() {
   Wire.begin(8);
   Wire.onReceive(receiveEvent);
   //Wire.onRequest(requestEvent);
-  Serial.println("Setup");
 }
 
 
 void loop() {
-  if (isStarted) {
-    sigueLineas(lecturaSensorIzq, lecturaSensorDer);
+  if (isLineFollowerActivated) {
+    lineFollower(leftIRSensorRead, rightIRSensorRead);
   }
 }
 
 
-void receiveEvent(int howMany) {
-  Serial.println("Entra: ");
-  s = Wire.read();
-  Serial.println(s);
-  switch(s) {
-  case 'm': isStarted = 1; break; // marcha
-  case 'p': isStarted = 0; break; // paro
-  case 'g': // 180 
-    break;
-  case 'n': // 90
-    break;
-  case 'i':
-    lecturaSensorIzq = Wire.read();
-    Serial.print("Lectura sensor izquierdo: ");
-    Serial.println(lecturaSensorIzq);
-    break;
-  case 'd':
-    lecturaSensorDer = Wire.read();
-    Serial.print("Lectura sensor derecho: ");
-    Serial.println(lecturaSensorDer);
-    break;
+void receiveEvent() {
+  char characterCommand = Wire.read();
+  int value = 0; 
+  switch (characterCommand) {
+    case 'm':
+      Serial.println("Marcha");
+      isLineFollowerActivated = true;
+      break;   
+    case 'p':
+      Serial.println("Paro");
+      isLineFollowerActivated = false;
+      break;
+    case 'r': 
+      rightIRSensorRead = Wire.read();
+      Serial.print("r: ");
+      Serial.println(String(value));
+      break;
+    case 'l':
+      leftIRSensorRead = Wire.read();
+      Serial.print("l: ");
+      Serial.println(String(value));
+      break;      
+    case 'g': //180
+      Serial.println("Giro 180");
+      break;
+    case 'n': //90
+      Serial.println("Giro 90");
+      break;
   }
 }

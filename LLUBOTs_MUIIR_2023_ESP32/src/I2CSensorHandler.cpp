@@ -10,7 +10,7 @@ void initializeI2CSensors() {
 
 
 void sendCommand(char command) {
-  // m, p, g, n, i, d
+  // m, p, g, n, l, r
   Wire.beginTransmission(8);
   Wire.write(command);
   Wire.endTransmission();
@@ -39,7 +39,7 @@ void sendTurn90Command() {
 
 void sendLeftSensorData(uint8_t data) {
   Wire.beginTransmission(8);
-  Wire.write('i');
+  Wire.write('l');
   Wire.write(data);
   Wire.endTransmission();
 }
@@ -47,7 +47,7 @@ void sendLeftSensorData(uint8_t data) {
 
 void sendRightSensorData(uint8_t data) {
   Wire.beginTransmission(8);
-  Wire.write('d');
+  Wire.write('r');
   Wire.write(data);
   Wire.endTransmission();
 }
