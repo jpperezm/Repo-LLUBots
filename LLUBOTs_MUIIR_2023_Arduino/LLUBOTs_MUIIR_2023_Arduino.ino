@@ -1,22 +1,44 @@
-/* Created by: Luisana Lara Briceño.
- * Graduate in Industrial Electronic Engineering and Automation.
- * Contact: luisanalarab@gmail.com
- * LinkedIn: https://www.linkedin.com/in/luisanalarab/
- * 
- * 
- * Modified by: MUIIR 2023 students.
- */
- 
 #include <Wire.h>
 #include <AccelStepper.h>
 #include <AFMotor.h>
 
-#include "include/movements.h"
-#include "include/lineFollower.h"
+AF_Stepper motorR(256, 1);    // Right motor  (stepper)
+AF_Stepper motorL(256, 2);    // Left  motor  (stepper)
 
-float speed = 400.0; // in rpm
-uint8_t initServoAngle = 90;  // in degrees
+void forwardstep1() {  
+  motorR.onestep(FORWARD, SINGLE);
+}
+void backwardstep1() {  
+  motorR.onestep(BACKWARD, SINGLE);
+}
+// wrappers for the second motor!
+void forwardstep2() {  
+  motorL.onestep(FORWARD, SINGLE);
+}
+void backwardstep2() {  
+  motorL.onestep(BACKWARD, SINGLE);
+}
+
+AccelStepper stepperR(forwardstep1, backwardstep1);
+AccelStepper stepperL(forwardstep2, backwardstep2);
+
+float speed = 300.0; // in rpm
 bool isLineFollowerActivated = false;
+bool turnRight = false;
+volatile char characterCommand = ' ';
+
+int leftIRSensorRead = 0;
+int rightIRSensorRead = 0;
+
+void initMotors(float speed) {
+    stepperR.setMaxSpeed(speed);
+    stepperR.setAcceleration(200.0);
+    stepperR.moveTo(1000000);
+    
+    stepperL.setMaxSpeed(speed);
+    stepperL.setAcceleration(200.0);
+    stepperL.moveTo(1000000);
+}
 
 void setup() {
   Serial.begin(9600);
@@ -25,42 +47,52 @@ void setup() {
 
   Wire.begin(8);
   Wire.onReceive(receiveEvent);
-  //Wire.onRequest(requestEvent);
 }
 
 
 void loop() {
-  lineFollower(leftIRSensorRead, rightIRSensorRead);
+  if (isLineFollowerActivated) {
+    if (leftIRSensorRead == 0 && rightIRSensorRead == 1) {
+      stepperL.run();
+    }
+    if (leftIRSensorRead == 1 && rightIRSensorRead == 0) {
+      stepperR.run();
+    }
+    if (leftIRSensorRead == 1 && rightIRSensorRead == 1) {
+      stepperR.run();
+      stepperL.run();
+    }
+    if (leftIRSensorRead == 0 && rightIRSensorRead == 0) {
+      stepperR.run();
+    }
+  }
+  if (turnRight) {
+    if (leftIRSensorRead == 0 && rightIRSensorRead == 1) {
+      turnRight = false;
+      isLineFollowerActivated = true;
+    }
+    stepperL.run();
+  }
 }
 
 
 void receiveEvent() {
-  char characterCommand = Wire.read();
-  int value = 0; 
-  switch (characterCommand) {
-    case 'm':
-      Serial.println("Marcha");
-      isLineFollowerActivated = true;
-      break;   
-    case 'p':
-      Serial.println("Paro");
-      isLineFollowerActivated = false;
-      break;
-    case 'r': 
-      rightIRSensorRead = Wire.read();
-      Serial.print("r: ");
-      Serial.println(String(value));
-      break;
-    case 'l':
-      leftIRSensorRead = Wire.read();
-      Serial.print("l: ");
-      Serial.println(String(value));
-      break;      
-    case 'g': //180
-      Serial.println("Giro 180");
-      break;
-    case 'n': //90
-      Serial.println("Giro 90");
-      break;
+  characterCommand = Wire.read();
+
+  if (characterCommand == 'g') {
+    isLineFollowerActivated = true;
+  }
+  if (characterCommand == 's') {
+    isLineFollowerActivated = false;
+  }
+  if (characterCommand == 'r') {
+    rightIRSensorRead = Wire.read();
+  }
+  if (characterCommand == 'l') {
+    leftIRSensorRead = Wire.read();
+  }
+  if (characterCommand == 't') {
+    isLineFollowerActivated = false;
+    turnRight = true;
   }
 }
