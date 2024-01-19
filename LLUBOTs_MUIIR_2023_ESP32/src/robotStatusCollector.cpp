@@ -9,6 +9,7 @@
 String serializeRobotState(RobotState state) {
   switch (state) {
     case kIdle: return "Idle";
+    case kLineFollowerTest: return "LineFollowerTest";
     case kSearch: return "Search";
     case kAtHomeFirstTry: return "At Home First Try";
     case kFoundHome: return "FoundHome";

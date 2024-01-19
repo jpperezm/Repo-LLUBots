@@ -9,7 +9,8 @@ enum RobotState {
   kLeaveRoundabout,
   kGoingHome,
   kAtHome,
-  kConfig
+  kConfig,
+  kLineFollowerTest
 };
 
 extern RobotState currentState;

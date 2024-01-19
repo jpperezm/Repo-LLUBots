@@ -53,6 +53,15 @@ void updateRobotState() {
       if (resetCommandReceived) {
         Serial.println("Changing to state Idle");
         currentState = kIdle;
+      } else if (lineFollowerTest) {
+        Serial.println("Changing to state LineFollowerTest");
+        currentState = kLineFollowerTest;
+      }
+      break;
+    case kLineFollowerTest:
+      if (!lineFollowerTest) {
+        Serial.println("Changing to state Config");
+        currentState = kConfig;
       }
       break;
 
@@ -144,6 +153,11 @@ void handleConfigContinuous() {
 }
 
 
+void handleLineFollowerTestInitial() {
+  sendLineFollowerCommand();
+}
+
+
 void handleIdleInitial() {
   sendStopCommand();
 }
@@ -229,6 +243,9 @@ void handleRobotState() {
       case kConfig: handlConfigInitial(); 
         Serial.println("State Config Initial");
       break;
+      case kLineFollowerTest: handleLineFollowerTestInitial(); 
+        Serial.println("State LineFollowerTest Initial");
+        break;
       case kIdle: handleIdleInitial();  
         Serial.println("State Idle Initial");
       break;
@@ -265,6 +282,7 @@ void handleRobotState() {
   switch (currentState) {
     case kConfig: handleConfigContinuous(); 
     break;
+    case kLineFollowerTest: break;
     case kIdle: handleIdleContinuous(); break;
     case kSearch: handleSearchContinuous(); break;
     case kAtHomeFirstTry: break;
