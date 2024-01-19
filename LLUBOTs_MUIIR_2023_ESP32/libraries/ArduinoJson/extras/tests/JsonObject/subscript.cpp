@@ -7,8 +7,6 @@
 
 #include "Allocators.hpp"
 
-using ArduinoJson::detail::sizeofObject;
-
 TEST_CASE("JsonObject::operator[]") {
   SpyingAllocator spy;
   JsonDocument doc(&spy);
