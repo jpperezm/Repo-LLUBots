@@ -26,6 +26,7 @@ float speed = 300.0; // in rpm
 bool isLineFollowerActivated = false;
 bool turnRight = false;
 volatile char characterCommand = ' ';
+int TurnTime = 1000;
 
 int leftIRSensorRead = 0;
 int rightIRSensorRead = 0;
@@ -51,6 +52,9 @@ void setup() {
 
 
 void loop() {
+  unsigned long now = millis();
+  static unsigned long lastTurnTime = 0;
+
   if (isLineFollowerActivated) {
     if (leftIRSensorRead == 0 && rightIRSensorRead == 1) {
       stepperL.run();
@@ -67,9 +71,12 @@ void loop() {
     }
   }
   if (turnRight) {
-    if (leftIRSensorRead == 0 && rightIRSensorRead == 1) {
-      turnRight = false;
-      isLineFollowerActivated = true;
+    if (now - lastTurnTime > TurnTime) {
+      lastTurnTime = now;
+      if (leftIRSensorRead == 0 && rightIRSensorRead == 1) {
+        turnRight = false;
+        isLineFollowerActivated = true;
+      }
     }
     stepperL.run();
   }
