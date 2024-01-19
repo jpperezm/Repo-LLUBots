@@ -56,4 +56,8 @@ void loop() {
     sendLeftSensorData(getLeftIRValue());
     sendRightSensorData(getRightIRValue());
   }
+
+  if (getUltrasonicDistance() < 10) {
+    sendStopCommand();
+  }
 }
