@@ -46,7 +46,8 @@ void callback(char *topic, byte *payload, unsigned int length) {
     startCommandReceived = true;
   } else if (String(topic) == "RESET") {
     resetCommandReceived = true;
-  } else if (String(topic) == home_topic + homeName) {
+  } else if (String(topic) == String(home_topic) + String(homeName)) {
+    Serial.println("Llega goal");
     goalStreetName = message.toInt();
   } else if (String(topic) == roundabout_topic) {
     Serial.println("Alguien llegó a la rotonda");
@@ -68,6 +69,8 @@ void callback(char *topic, byte *payload, unsigned int length) {
     } else if (message == "STOP") {
       lineFollowerTest = false;
     }
+  } else if (String(topic) == config_topic) {
+    configModeActivated = true;
   }
   Serial.println();
 }
@@ -89,7 +92,7 @@ void establishMQTTConnection() {
     if (MQTTClient.connect(LLUBotID.c_str())) {
       Serial.println("Connected to MQTT");
       if (homeName != -1) {
-        MQTTClient.subscribe(String(home_topic + homeName).c_str());
+        MQTTClient.subscribe(String(String(home_topic) + String(homeName)).c_str());
       }
       MQTTClient.subscribe(config_topic);
       MQTTClient.subscribe(String(String(config_topic) + LLUBotID + "/home").c_str());
@@ -151,6 +154,11 @@ void publishLLUBotHomeLocation(int homeName) {
   if (!MQTTClient.connected()) {
     establishMQTTConnection();
   }
-  MQTTClient.publish(home_topic + homeName, String(initialStreetName).c_str());
+  MQTTClient.publish(String(String(home_topic) + String(homeName)).c_str(), String(initialStreetName).c_str());
   LLUBotLocationSent = true;
+}
+
+
+void MQTTdisconnect() {
+  MQTTClient.disconnect();
 }

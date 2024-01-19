@@ -7,6 +7,7 @@
 
 RobotState currentState = kConfig;
 RobotState previousState = kConfig;
+RobotState previousStateEmergencyStop = kConfig;
 
 bool startCommandReceived = false;
 bool resetCommandReceived = false;
@@ -25,6 +26,8 @@ int NFCCurrentValue;
 String LLUBotID = "Blanco";
 
 bool lineFollowerTest = false;
+bool emergencyStop = false;
+
 
 bool atHome() {
   return NFCCurrentValue == homeName;
@@ -46,78 +49,96 @@ bool foundGoalStreet() {
 }
 
 
+bool nonEmergencyStates() {
+  return (currentState == kIdleRoundabout) || 
+         (currentState == kAtHomeFirstTry);
+}
+
+
 void updateRobotState() {
   RobotState lastState = currentState;
+
+  if (emergencyStop && currentState != kEmergencyStop && !nonEmergencyStates()) {
+    previousStateEmergencyStop = lastState;
+    currentState = kEmergencyStop;
+  }
+
+  if (configModeActivated && currentState != kConfig) {
+    configModeActivated = false;
+    currentState = kConfig;
+  }
+
   switch (currentState) {
     case kConfig:
       if (resetCommandReceived) {
         Serial.println("Changing to state Idle");
+        MQTTdisconnect();
         currentState = kIdle;
+        resetCommandReceived = false;
       } else if (lineFollowerTest) {
         Serial.println("Changing to state LineFollowerTest");
         currentState = kLineFollowerTest;
-      }
+      } 
       break;
     case kLineFollowerTest:
       if (!lineFollowerTest) {
-        Serial.println("Changing to state Config");
         currentState = kConfig;
+        Serial.println("Changing to state kConfig");
       }
       break;
 
     case kIdle:
       if (startCommandReceived) {
-        Serial.println("Changing to state Search");
         currentState = kSearch;
+         Serial.println("Changing to state kSearch");
+         startCommandReceived = false;
       }
       break;
 
     case kSearch:
       if (atHome()) {
         currentState = kAtHomeFirstTry;
-      } else if (configModeActivated) {
-        Serial.println("Changing to state Config");
-        currentState = kConfig;
+         Serial.println("Changing to state kAtHomeFirstTry");
       } else if (foundAHome()) {
-        Serial.println("Changing to state FoundHome");
         currentState = kFoundHome;
+         Serial.println("Changing to state kFoundHome");
       }
       break;
 
     case kAtHomeFirstTry:
-      if (configModeActivated) {
-        Serial.println("Changing to state Config");
-        currentState = kConfig;
-      } else if (resetCommandReceived) {
-        Serial.println("Changing to state Idle");
+      if (resetCommandReceived) {
+         Serial.println("Changing to state kIdle");
         currentState = kIdle;
+        resetCommandReceived = false;
       }
       break;
 
     case kFoundHome:
       if (LLUBotLocationSent) {
-        Serial.println("Changing to state Return");
+        Serial.println("Changing to state kReturn");
         currentState = kReturn;
+        LLUBotLocationSent = false;
       }
       break;
 
     case kReturn:
       if (foundInitialStreet()) {
-        Serial.println("Changing to state IdleRoundabout");
+        Serial.println("Changing to state kIdleRoundabout");
         currentState = kIdleRoundabout;
       }
       break;
 
     case kIdleRoundabout:
       if (numberOfLLUBotsOnRoundabout == numberOfLLUBots) {
-        Serial.println("Changing to state Roundabout");
+        Serial.println("Changing to state kRoundabout");
         currentState = kRoundabout;
+        numberOfLLUBotsOnRoundabout = 0;
       }
       break;
 
     case kRoundabout:
       if (foundGoalStreet()) {
-        Serial.println("Changing to state LeaveRoundabout");
+        Serial.println("Changing to state kLeaveRoundabout");
         currentState = kLeaveRoundabout;
       }
       break;
@@ -131,15 +152,23 @@ void updateRobotState() {
 
     case kGoingHome:
       if (atHome()) {
-        Serial.println("Changing to state AtHome");
+        Serial.println("Changing to state kAtHome");
         currentState = kAtHome;
       }
       break;
-
+    case kEmergencyStop:
+      if (!emergencyStop) {
+        currentState = previousStateEmergencyStop;
+      }
     default:
       break;
   }
   previousState = lastState;
+}
+
+
+void handleEmergencyStopInitial() {
+  sendStopCommand();
 }
 
 
@@ -182,6 +211,11 @@ void handleSearchContinuous() {
 void handleAtHomeFirstTryInitial() {
   sendStopCommand();
   publishRoundabout("FoundHome");
+}
+
+
+void handleAtHomeFirstTryContinuous() {
+  NFCCurrentValue = readNFCSensor();
 }
 
 
@@ -240,42 +274,19 @@ void handleAtHomeInitial() {
 void handleRobotState() {
   if (currentState != previousState) {
     switch (currentState) {
-      case kConfig: handlConfigInitial(); 
-        Serial.println("State Config Initial");
-      break;
-      case kLineFollowerTest: handleLineFollowerTestInitial(); 
-        Serial.println("State LineFollowerTest Initial");
-        break;
-      case kIdle: handleIdleInitial();  
-        Serial.println("State Idle Initial");
-      break;
-      case kSearch: handleSearchInitial(); 
-        Serial.println("State Search Initial");
-      break;
-      case kAtHomeFirstTry: handleAtHomeFirstTryInitial(); 
-        Serial.println("State AtHomeFirstTry Initial");
-      break;
-      case kFoundHome: handleFoundHomeInitial(); 
-        Serial.println("State FoundHome Initial");
-      break;
-      case kReturn: handleReturnInitial(); 
-        Serial.println("State Return Initial");
-      break;
-      case kIdleRoundabout: handleIdleRoundaboutInitial(); 
-        Serial.println("State IdleRoundabout Initial");
-      break;
-      case kRoundabout: handleRoundaboutInitial(); 
-        Serial.println("State Roundabout Initial");
-      break;
-      case kLeaveRoundabout: handleLeaveRoundaboutInitial(); 
-        Serial.println("State LeaveRoundabout Initial");
-      break;
-      case kGoingHome: handleGoingHomeInitial(); 
-        Serial.println("State GoingHome Initial");
-      break;
-      case kAtHome: handleAtHomeInitial(); 
-        Serial.println("State AtHome Initial");
-      break;
+      case kConfig: handlConfigInitial(); break;
+      case kLineFollowerTest: handleLineFollowerTestInitial(); break;
+      case kIdle: handleIdleInitial(); break;
+      case kSearch: handleSearchInitial(); break;
+      case kAtHomeFirstTry: handleAtHomeFirstTryInitial(); break;
+      case kFoundHome: handleFoundHomeInitial(); break;
+      case kReturn: handleReturnInitial(); break;
+      case kIdleRoundabout: handleIdleRoundaboutInitial(); break;
+      case kRoundabout: handleRoundaboutInitial(); break;
+      case kLeaveRoundabout: handleLeaveRoundaboutInitial(); break;
+      case kGoingHome: handleGoingHomeInitial(); break;
+      case kAtHome: handleAtHomeInitial(); break;
+      case kEmergencyStop: handleEmergencyStopInitial(); break;
       default: break;
     }
   }
@@ -285,7 +296,7 @@ void handleRobotState() {
     case kLineFollowerTest: break;
     case kIdle: handleIdleContinuous(); break;
     case kSearch: handleSearchContinuous(); break;
-    case kAtHomeFirstTry: break;
+    case kAtHomeFirstTry: handleAtHomeFirstTryContinuous(); break;
     case kFoundHome: break;
     case kReturn: handleReturnContinuous(); break;
     case kIdleRoundabout: break;
@@ -293,6 +304,7 @@ void handleRobotState() {
     case kLeaveRoundabout: break;
     case kGoingHome: handleGoingHomeContinuous(); break;
     case kAtHome: break;
+    case kEmergencyStop: break;
     default: break;
   }
 }

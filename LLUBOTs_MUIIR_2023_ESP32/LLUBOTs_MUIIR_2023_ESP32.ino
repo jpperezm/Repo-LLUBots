@@ -30,7 +30,6 @@ void setup() {
 
   initializeI2CSensors();
   initializeSensors();
-  sendLineFollowerCommand();
 }
 
 
@@ -43,11 +42,11 @@ void loop() {
   handleMQTTLoop();
   handleRobotState();
   updateRobotState();
+  
   if (now - lastMsg > 10000) {
     lastMsg = now;
     publishRobotStatus();
   }
-
 
   updateSensors();
 
@@ -58,6 +57,8 @@ void loop() {
   }
 
   if (getUltrasonicDistance() < 10) {
-    sendStopCommand();
+    emergencyStop = true;
+  } else {
+    emergencyStop = false;
   }
 }

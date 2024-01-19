@@ -11,3 +11,4 @@ void handleMQTTLoop();
 void publishRobotStatus();
 void publishRoundabout(String status);
 void publishLLUBotHomeLocation(int homeID);
+void MQTTdisconnect();

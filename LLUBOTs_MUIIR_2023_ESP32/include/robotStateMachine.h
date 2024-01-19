@@ -10,7 +10,8 @@ enum RobotState {
   kGoingHome,
   kAtHome,
   kConfig,
-  kLineFollowerTest
+  kLineFollowerTest,
+  kEmergencyStop
 };
 
 extern RobotState currentState;
@@ -30,6 +31,7 @@ extern int numberOfLLUBotsOnRoundabout;
 extern String LLUBotID;
 
 extern bool lineFollowerTest;
+extern bool emergencyStop;
 
 void updateRobotState();
 void handleRobotState();

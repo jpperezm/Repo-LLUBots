@@ -20,6 +20,7 @@ String serializeRobotState(RobotState state) {
     case kGoingHome: return "GoingHome";
     case kAtHome: return "AtHome";
     case kConfig: return "Config";
+    case kEmergencyStop: return "EmergencyStop";
     default: return "Unknown";
   }
 }
