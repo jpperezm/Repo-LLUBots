@@ -38,6 +38,7 @@ void loop() {
   unsigned long now = millis();
   static unsigned long lastMsg = 0;
   static unsigned long lastI2C = 0;
+  static bool sentLineFollowerCommand = false;
   if (!lineFollowerTest) {
     checkWifiConnection();
     handleMQTTLoop();
@@ -47,6 +48,9 @@ void loop() {
       lastMsg = now;
       publishRobotStatus();
     }
+  } else if (!sentLineFollowerCommand) {
+    sendLineFollowerCommand();
+    sentLineFollowerCommand = true;
   }
 
   updateSensors();
