@@ -7,28 +7,36 @@ import json
 import time
 import sys
 
+roundabout = 0
+
 class LLUBot:
 
   def getHouse(self,number):
-    if (number == 1):
-      return "Blanca"
-    if (number == 2):
-      return "Morada"
-    if (number == 3):
-      return "Amarilla"
-    if (number == 4):
-      return "Verde"
-    if (number == 5):
-      return "Roja"
+    if (number == "Blanca"):
+      return 1
+    if (number == "Violeta"):
+      return 2
+    if (number == "Azul"):
+      return 3
+    if (number == "Verde"):
+      return 4
+    if (number == "Roja"):
+      return 5
   
-  def unpackJson(self,json_str):
-    info = json.loads(json_str)
-    self.SigLineaList.append(info["SigLinea"])
-    self.LastSigLinea = info["SigLinea"]
-    self.UltraSonList.append(info["UltraSon"])
-    self.LastUS = info["UltraSon"]
-    self.BateriaList.append(info["Bateria"])
-    self.LastBat = info["Bateria"]
+  def unpackJson(self,info):
+    global roundabout
+    self.SigLineaList.append([info["leftLineFollower"],info["rightLineFollower"]])
+    self.LastSigLinea = [info["leftLineFollower"],info["rightLineFollower"]]
+    self.UltraSonList.append(info["ultrasonic"])
+    self.LastUS = info["ultrasonic"]
+    self.NFCInfoList.append(info["NFC"])
+    self.LastNFC = info["NFC"]
+    self.ModoList.append(info["currentState"])
+    self.LastModo = info["currentState"]
+    self.Ruta = info["initialStreetName"]
+    self.Casa = info["homeName"]
+    self.RutaDestino = info["goalStreetName"]
+    roundabout = info["numberOfLLUBotsOnRoundabout"]
   
   def __init__(self, id):
     self._ID = id
@@ -40,14 +48,13 @@ class LLUBot:
     self.LastSigLinea = ""
     self.UltraSonList = []
     self.LastUS = ""
-    self.BateriaList = []
-    self.LastBat = ""
     #Modo / X
     self.ModoList = []
     self.LastModo = ""
 
-    self.Ruta = 0
-    self.EnCasa = False
+    self.Ruta = ""
+    self.RutaDestino = ""
+    self.Casa = ""
   
   def clear(self):
     self.NFCInfoList = []
@@ -55,8 +62,15 @@ class LLUBot:
     self.UltraSonList = []
     self.ModoList = []
     self.BateriaList = []
+    self.LastSigLinea = ""
+    self.LastUS = ""
+    self.LastModo = ""
+    self.Ruta = ""
+    self.RutaDestino = ""
+    self.Casa = ""
 
-LLUBOTS = [LLUBot(1),LLUBot(2),LLUBot(3),LLUBot(4),LLUBot(5)]
+LLUBOTS = {}
+LLUBOTS_ID = []
 # Suscribe el cliente a los puntos de info del llubot endpoints
 def subscribe_ULLBOT(client,endPoint):
   client.subscribe("/LLUBots/NFC/" + endPoint)
@@ -71,11 +85,9 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     client.subscribe("START")
     client.subscribe("STOP")
-    subscribe_ULLBOT(client,"1")
-    subscribe_ULLBOT(client,"2")
-    subscribe_ULLBOT(client,"3")
-    subscribe_ULLBOT(client,"4")
-    subscribe_ULLBOT(client,"5")
+    client.subscribe("/LLUBot/info")
+
+
 
 mensajes = []
 # The callback for when a PUBLISH message is received from the server.
@@ -84,16 +96,22 @@ def on_message(client, userdata, msg):
   new_msg +=  msg.payload.decode()
   mensajes.append(new_msg)
   splitTopic = msg.topic.split("/")
-  if (len(splitTopic) > 3 and splitTopic[1] == "LLUBots"):
+  if (len(splitTopic) > 2 and splitTopic[1] == "LLUBot"):
+    if (splitTopic[2] == "info"):
+      info = json.loads(msg.payload.decode())
+      if (not (info["LLUBotID"] in LLUBOTS_ID)):
+        LLUBOTS_ID.append(info["LLUBotID"])
+        LLUBOTS[info["LLUBotID"]] = (LLUBot(info["LLUBotID"]))
+        subscribe_ULLBOT(client,info["LLUBotID"])
+      LLUBOTS[info["LLUBotID"]].unpackJson(info)
+  if (len(splitTopic) > 3):
     if (splitTopic[2] == "NFC"):
-      LLUBOTS[int(splitTopic[3]) - 1].NFCInfoList.append(msg.payload.decode())
-      LLUBOTS[int(splitTopic[3]) - 1].LastNFC = msg.payload.decode()
+      LLUBOTS[splitTopic[3]].NFCInfoList.append(msg.payload.decode())
+      LLUBOTS[splitTopic[3]].LastNFC = msg.payload.decode()
       
-    if (splitTopic[2] == "INFO"):
-      LLUBOTS[int(splitTopic[3]) - 1].unpackJson(msg.payload.decode())
     if (splitTopic[2] == "MODO"):
-      LLUBOTS[int(splitTopic[3]) - 1].ModoList.append(msg.payload.decode())
-      LLUBOTS[int(splitTopic[3]) - 1].LastModo = msg.payload.decode()
+      LLUBOTS[splitTopic[3]].ModoList.append(msg.payload.decode())
+      LLUBOTS[splitTopic[3]].LastModo = msg.payload.decode()
 
 
 
@@ -165,32 +183,32 @@ app.layout = dbc.Container([
                         selected_style=tab_selected_style
                     ),
                     dcc.Tab(
-                        label='LluBot1',
-                        value='pestaña-LluBot1',
+                        label='LluBot Blanco',
+                        value='pestaña-LluBot-Blanco',
                         style=tab_style,
                         selected_style=tab_selected_style
                     ),
                     dcc.Tab(
-                        label='LluBot2',
-                        value='pestaña-LluBot2',
+                        label='LluBot Violeta',
+                        value='pestaña-LluBot-Violeta',
                         style=tab_style,
                         selected_style=tab_selected_style
                     ),
                     dcc.Tab(
-                        label='LluBot3',
-                        value='pestaña-LluBot3',
+                        label='LluBot Azul',
+                        value='pestaña-LluBot-Azul',
                         style=tab_style,
                         selected_style=tab_selected_style
                     ),
                     dcc.Tab(
-                        label='LluBot4',
-                        value='pestaña-LluBot4',
+                        label='LluBot Verde',
+                        value='pestaña-LluBot-Verde',
                         style=tab_style,
                         selected_style=tab_selected_style
                     ),
                     dcc.Tab(
-                        label='LluBot5',
-                        value='pestaña-LluBot5',
+                        label='LluBot Rojo',
+                        value='pestaña-LluBot-Rojo',
                         style=tab_style,
                         selected_style=tab_selected_style
                     ),
@@ -240,59 +258,56 @@ def createDataColumn(data,id_data,widthW,title):
             class_name='flex-grow-1 overflow-auto')
   ], style={"height": "100%"},class_name="d-flex flex-column")
 
-def createLLUbotTab(number, data):
+def createLLUbotTab(id, data):
   style_rec={ 'text-align': 'center', 'border-radius':'10px','padding': '10px 0px 1px 0px', 'font-size': '20px',
              'font-width':'bold', 'background-color':'#ffb5b3', 'color':'black'}
-  camino = LLUBOTS[number - 1].LastNFC if LLUBOTS[number - 1].LastNFC != "" else "NOT SENT"
-  casaEncontrada = "NOT SENT"
-  rutaActual = "NOT SENT"
-  modo = LLUBOTS[number - 1].LastModo if LLUBOTS[number - 1].LastModo != "" else "NOT SENT"
+  camino = LLUBOTS[id].RutaDestino if LLUBOTS[id].RutaDestino != "" else "NOT SENT"
+  casaEncontrada = LLUBOTS[id].LastNFC if LLUBOTS[id].LastNFC != "" else "NOT SENT"
+  rutaActual = LLUBOTS[id].Casa if LLUBOTS[id].Casa != "" else "NOT SENT"
+  modo = LLUBOTS[id].LastModo if LLUBOTS[id].LastModo != "" else "NOT SENT"
   
-  history = {'US' + str(number):[],'SigueLinea' + str(number):[],'Bateria' + str(number):[]}
+  history = {'US_' + id:[],'SigueLinea_' + id:[],}
   if data != None:
-    if ('US' + str(number)) in data:
-      history['US' + str(number)] =  [x for xs in data['US' + str(number)]for x in xs]
-    if ('SigueLinea' + str(number)) in data:
-      history['SigueLinea' + str(number)] =[x for xs in data['SigueLinea' + str(number)]for x in xs] 
-    if ('Bateria' + str(number)) in data:
-      history['Bateria' + str(number)] = [x for xs in data['Bateria' + str(number)]for x in xs]
+    if ('US_' + id) in data:
+      history['US_' + id] =  [x for xs in data['US_' + id]for x in xs]
+    if ('SigueLinea_' + id) in data:
+      history['SigueLinea_' + id] =[x for xs in data['SigueLinea_' + id]for x in xs] 
   
   return [dbc.Card([dbc.CardBody( [
     dbc.Row([
       dbc.Col([
         dbc.Row([
           dbc.Row(dbc.Col(html.H4('Tiene que llegar a la casa:', style={'color':'white'}),width=6)),
-          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-su-casa-' + str(number), children=f'{LLUBOTS[0].getHouse(LLUBOTS[number - 1]._ID)}', style=style_rec),width=6))
+          dbc.Row(dbc.Col(dcc.Markdown(id = {'type':'markdown-su-casa', "index":id} , children=f'{LLUBOTS[id]._ID}', style=style_rec),width=6))
         ]),
         dbc.Row([
           dbc.Row(dbc.Col(html.H4('Tiene que ir por la ruta:', style={ 'color':'white'}),width=6)),
-          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-su-ruta-' + str(number), children=f'{camino}', style=style_rec),width=6))
+          dbc.Row(dbc.Col(dcc.Markdown(id = {'type': 'markdown-su-ruta', "index":id}, children=f'{camino}', style=style_rec),width=6))
         ]),
         dbc.Row([
           dbc.Row(dbc.Col(html.H4('Ha llegado a la casa:', style={  'color':'white'}),width=6)),
-          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-casa-' + str(number) , children=f'{casaEncontrada}', style=style_rec),width=6))
+          dbc.Row(dbc.Col(dcc.Markdown(id = {'type':'markdown-casa',"index":id} , children=f'{casaEncontrada}', style=style_rec),width=6))
         ]),
         dbc.Row([
           dbc.Row(dbc.Col(html.H4('Se encuentra en la ruta:', style={'color':'white'}),width=6)),
-          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-ruta-' + str(number), children=f'{rutaActual}', style=style_rec),width=6))
+          dbc.Row(dbc.Col(dcc.Markdown(id = {'type':'markdown-ruta',"index":id}, children=f'{rutaActual}', style=style_rec),width=6))
         ]),
         dbc.Row([
           dbc.Row(dbc.Col(html.H4('Modo', style={'color':'white'}),width=6)),
-          dbc.Row(dbc.Col(dcc.Markdown(id = 'markdown-modo-' + str(number), children=f'{modo}', style=style_rec),width=6))
+          dbc.Row(dbc.Col(dcc.Markdown(id = {'type':'markdown-modo',"index":id}, children=f'{modo}', style=style_rec),width=6))
         ]),
       ],width=6,class_name="d-flex flex-column align-self-center"),
       dbc.Col([
         dbc.Row(html.H4('Datos', style={'color':'white','text-align': 'center'})),
         dbc.Row([
-          createDataColumn(history['US' + str(number)],{'type': "UltraSonido", 'index' : str(number)},4,"UltraSonido"),
-          createDataColumn(history['SigueLinea' + str(number)],{'type': "SigueLinea", 'index' : str(number)},4,"SigueLinea"),
-          createDataColumn(history['Bateria' + str(number)],{'type': "Bateria", 'index' : str(number)},4,"Bateria"),
+          createDataColumn(history['US_' + id],{'type': "UltraSonido", 'index' : id},4,"UltraSonido"),
+          createDataColumn(history['SigueLinea_' + id],{'type': "SigueLinea", 'index' : id},4,"SigueLinea"),
           ],style={"height":"100%"},class_name="d-flex")
       ],width=6,style={"max-height":"100%"})
     ],style={"height":"100%"})
   ],className='overflow-hidden')
   ],style={"background-color": "inherit", "border-color": "rgba(255, 0, 0, 0)",'height':'100%'}),
-        dcc.Interval(id={'type' : 'Interval', 'index': str(number)}, interval=1000,n_intervals=0),]
+        dcc.Interval(id={'type' : 'Interval', 'index': id}, interval=1000,n_intervals=0),]
   
 
 @callback(Output('contenido-pestaña', 'children'),
@@ -328,8 +343,11 @@ def render_content(tab,storedMsg):
                           ],
                     style={"height":"100%",'background-color':'inherit'},
                     class_name='border-0')
-  elif tab[0:-1] == 'pestaña-LluBot':
-    return createLLUbotTab(int(tab[-1]),storedMsg)
+  elif tab[0:15] == 'pestaña-LluBot-':
+    if (tab[15:] in LLUBOTS_ID):
+      return createLLUbotTab(tab[15:],storedMsg)
+    else:
+      return "NOT STARTED"
 
 
 @callback(
@@ -362,31 +380,33 @@ def update_data(n_intervals,children):
 @callback(
   [Output({'type':'UltraSonido', 'index': MATCH},'children'),
    Output({'type':'SigueLinea', 'index': MATCH},'children'),
-   Output({'type':'Bateria', 'index': MATCH},'children')],
+   Output({'type':'markdown-su-casa', "index":MATCH},'children'),
+   Output({'type':'markdown-su-ruta', "index":MATCH},'children'),
+   Output({'type':'markdown-casa', "index":MATCH},'children'),
+   Output({'type':'markdown-ruta', "index":MATCH},'children'),
+   Output({'type':'markdown-modo', "index":MATCH},'children')],
   Input({'type':'Interval', 'index': MATCH},'n_intervals'),
   State({'type':'UltraSonido', 'index': MATCH},'children'),
   State({'type':'SigueLinea', 'index': MATCH},'children'),
-  State({'type':'Bateria', 'index': MATCH},'children')
 )
-def checkWOrth(n_intervals,UltraSonido,SigLin,Bat):
+def checkWOrth(n_intervals,UltraSonido,SigLin):
   trigger = ctx.triggered_id
   if not trigger:
     return no_update
   
-  index_number = int(trigger["index"])
+  index_number = trigger["index"]
   
   def writeInfo(list,objChildren):
     for msg in list:
-      strMsg = "[" + str(datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")) +"]:" + msg
+      strMsg = "[" + str(datetime.utcnow().strftime("%d/%m/%Y, %H:%M:%S")) +"]:" + str(msg)
       objChildren.append(html.P(children=strMsg))
 
     list.clear()
   
-  writeInfo(LLUBOTS[index_number - 1].UltraSonList,UltraSonido)
-  writeInfo(LLUBOTS[index_number - 1].SigLineaList,SigLin)
-  writeInfo(LLUBOTS[index_number - 1].BateriaList,Bat)
-  
-  return [UltraSonido,SigLin,Bat]
+  writeInfo(LLUBOTS[index_number ].UltraSonList,UltraSonido)
+  writeInfo(LLUBOTS[index_number ].SigLineaList,SigLin)
+  return [UltraSonido,SigLin,str(LLUBOTS[index_number]._ID),str(LLUBOTS[index_number].RutaDestino),
+          str(LLUBOTS[index_number].LastNFC),str(LLUBOTS[index_number].Casa),str(LLUBOTS[index_number].LastModo)]
 
 @callback(
    Output('store', 'data',allow_duplicate=True),
@@ -404,20 +424,17 @@ def update_store(children,data):
    Output('store', 'data',allow_duplicate=True),
    Input({'type':'UltraSonido', 'index': ALL},'children'),
    Input({'type':'SigueLinea', 'index': ALL},'children'),
-   Input({'type':'Bateria', 'index': ALL},'children'),
    State('store', 'data'),
    prevent_initial_call=True)
-def update_store(childrenUS,childrenSL,childrenBt,data):
+def update_store(childrenUS,childrenSL,data):
   trigger = ctx.triggered_id
   if trigger:
       if data == None:
-        return {'US' + trigger['index']  : childrenUS,
-                'SigueLinea' + trigger['index']  : childrenSL,
-                'Bateria' + trigger['index']  : childrenBt}
+        return {'US_' + trigger['index']  : childrenUS,
+                'SigueLinea_' + trigger['index']  : childrenSL,}
 
-      data['US' + trigger['index']] = childrenUS
-      data['SigueLinea' + trigger['index']] = childrenSL
-      data['Bateria' + trigger['index']] = childrenBt
+      data['US_' + trigger['index']] = childrenUS
+      data['SigueLinea_' + trigger['index']] = childrenSL
       return data
   return no_update
 
