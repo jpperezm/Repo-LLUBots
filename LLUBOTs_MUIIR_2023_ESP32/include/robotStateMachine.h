@@ -26,5 +26,9 @@ extern int initialStreetName;
 extern int goalStreetName;
 extern int numberOfLLUBotsOnRoundabout;
 
+extern String LLUBotID;
+
+extern bool lineFollowerTest;
+
 void updateRobotState();
 void handleRobotState();

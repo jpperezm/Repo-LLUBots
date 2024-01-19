@@ -29,18 +29,31 @@ void setup() {
   initializeMQTTConnection();
 
   initializeI2CSensors();
+  initializeSensors();
+  sendLineFollowerCommand();
 }
 
 
 void loop() {
   unsigned long now = millis();
   static unsigned long lastMsg = 0;
-  checkWifiConnection();
-  handleMQTTLoop();
-  handleRobotState();
-  updateRobotState();
-  if (now - lastMsg > 10000) {
-    lastMsg = now;
-    publishRobotStatus();
+  static unsigned long lastI2C = 0;
+  if (!lineFollowerTest) {
+    checkWifiConnection();
+    handleMQTTLoop();
+    handleRobotState();
+    updateRobotState();
+    if (now - lastMsg > 10000) {
+      lastMsg = now;
+      publishRobotStatus();
+    }
+  }
+
+  updateSensors();
+
+  if (now - lastI2C > 200) {
+    lastI2C = now;
+    sendLeftSensorData(getLeftIRValue());
+    sendRightSensorData(getRightIRValue());
   }
 }

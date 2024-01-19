@@ -10,30 +10,24 @@ void initializeI2CSensors() {
 
 
 void sendCommand(char command) {
-  // m, p, g, n, l, r
   Wire.beginTransmission(8);
   Wire.write(command);
   Wire.endTransmission();
 }
 
 
-void sendFollowLineCommand() {
-  sendCommand('m');
-}
-
-
-void sendStopCommand() {
-  sendCommand('p');
-}
-
-
-void sendTurn180Command() {
+void sendLineFollowerCommand() {
   sendCommand('g');
 }
 
 
-void sendTurn90Command() {
-  sendCommand('n');
+void sendStopCommand() {
+  sendCommand('s');
+}
+
+
+void sendTurnCommand() {
+  sendCommand('t');
 }
 
 

@@ -1,8 +1,7 @@
 void initializeI2CSensors();
 
-void sendFollowLineCommand();
+void sendLineFollowerCommand();
 void sendStopCommand();
-void sendTurn180Command();
-void sendTurn90Command();
+void sendTurnCommand();
 void sendLeftSensorData(uint8_t data);
 void sendRightSensorData(uint8_t data);

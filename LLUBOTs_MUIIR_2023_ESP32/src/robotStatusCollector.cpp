@@ -5,17 +5,6 @@
 #include "../include/robotStateMachine.h"
 #include "../include/sensorsHandler.h"
 
-int leftLineFollowerData;
-int rightLineFollowerData;
-float ultrasonicData;
-
-
-void updateSensorData() {
-  collectLineFollowerData();
-  collectUltrasonicData();
-  updateRobotState();
-}
-
 
 String serializeRobotState(RobotState state) {
   switch (state) {
@@ -38,23 +27,18 @@ String serializeRobotState(RobotState state) {
 String generateRobotStatusJson() {
   DynamicJsonDocument doc(1024);
 
-  doc["leftLineFollower"] = leftLineFollowerData;
-  doc["rightLineFollower"] = rightLineFollowerData;
-  doc["ultrasonic"] = ultrasonicData;
+  doc["LLUBotID"] = LLUBotID;
+  doc["leftLineFollower"] = getLeftIRValue();
+  doc["rightLineFollower"] = getRightIRValue();
+  doc["ultrasonic"] = getUltrasonicDistance();
+  doc["NFC"] = getNFCSensorValue();
   doc["currentState"] = serializeRobotState(currentState);
+  doc["homeName"] = homeName;
+  doc["initialStreetName"] = initialStreetName;
+  doc["goalStreetName"] = goalStreetName;
+  doc["numberOfLLUBotsOnRoundabout"] = numberOfLLUBotsOnRoundabout;
 
   String jsonData;
   serializeJson(doc, jsonData);
   return jsonData;
-}
-
-
-void collectLineFollowerData() {
-  leftLineFollowerData = readLeftIRSensor();
-  rightLineFollowerData = readRightIRSensor();
-}
-
-
-void collectUltrasonicData() {
-  ultrasonicData = readUltrasonicSensor();
 }

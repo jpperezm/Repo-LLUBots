@@ -13,8 +13,6 @@ PubSubClient MQTTClient(wifiClient);
 const char *mqtt_broker = "51.20.185.180";
 const int mqtt_port = 1883;
 
-int LLUBotID;
-
 const char *home_topic = "/LLUBot/NFC/";
 const char *config_topic = "/LLUBot/config/";
 const char *info_topic = "/LLUBot/info";
@@ -37,28 +35,40 @@ String convertPayloadToString(byte *payload, unsigned int length) {
 void callback(char *topic, byte *payload, unsigned int length) {
   Serial.print("Message arrived in topic: ");
   Serial.println(topic);
-  Serial.print("Message:");
+  Serial.print("Message: ");
   for (int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }
+  Serial.println();
   String message = convertPayloadToString(payload, length);
 
   if (String(topic) == "START") {
     startCommandReceived = true;
   } else if (String(topic) == "RESET") {
     resetCommandReceived = true;
-  } else if (String(topic) == home_topic + LLUBotID) {
+  } else if (String(topic) == home_topic + homeName) {
     goalStreetName = message.toInt();
   } else if (String(topic) == roundabout_topic) {
-    numberOfLLUBotsOnRoundabout++;  // Assuming my own message arrives
+    Serial.println("Alguien llegó a la rotonda");
+    numberOfLLUBotsOnRoundabout++;
+    Serial.print("Número de llubots en la rotonda: ");
+    Serial.println(numberOfLLUBotsOnRoundabout);
   } else if (String(topic) == String(config_topic) + "numLLUBots") {
+    Serial.print("Numero de llubots");
+    Serial.println(String(message.toInt()));
     numberOfLLUBots = message.toInt();
   } else if (String(topic) == String(config_topic) + String(LLUBotID) + "/home") {
     homeName = message.toInt();
+    MQTTClient.disconnect();
   } else if (String(topic) == String(config_topic) + String(LLUBotID) + "/initialStreet") {
     initialStreetName = message.toInt();
+  } else if (String(topic) == "PRUEBA_SIGUELINEAS") {
+    if (message == "START") {
+      lineFollowerTest = true;
+    } else if (message == "STOP") {
+      lineFollowerTest = false;
+    }
   }
-
   Serial.println();
 }
 
@@ -76,14 +86,19 @@ void establishMQTTConnection() {
     mqttConnectStartMillis = millis();
     mqttState = kMQTTConnecting;
   } else if (mqttState == kMQTTConnecting) {
-    if (MQTTClient.connect("ESP32Client")) {
+    if (MQTTClient.connect(LLUBotID.c_str())) {
       Serial.println("Connected to MQTT");
-      MQTTClient.subscribe(home_topic + LLUBotID);
+      if (homeName != -1) {
+        MQTTClient.subscribe(String(home_topic + homeName).c_str());
+      }
       MQTTClient.subscribe(config_topic);
-      MQTTClient.subscribe(config_topic + LLUBotID);
+      MQTTClient.subscribe(String(String(config_topic) + LLUBotID + "/home").c_str());
+      MQTTClient.subscribe(String(String(config_topic) + LLUBotID.c_str() + "/initialStreet").c_str());
+      MQTTClient.subscribe(String(String(config_topic) + "numLLUBots").c_str());
       MQTTClient.subscribe(roundabout_topic);
       MQTTClient.subscribe("START");
       MQTTClient.subscribe("RESET");
+      MQTTClient.subscribe("PRUEBA_SIGUELINEAS");
       mqttState = kMQTTConnected;
     } else {
       Serial.print("Failed to connect to MQTT, state: ");
@@ -132,10 +147,10 @@ void publishRoundabout(String status) {
 }
 
 
-void publishLLUBotHomeLocation(int homeID) {
+void publishLLUBotHomeLocation(int homeName) {
   if (!MQTTClient.connected()) {
     establishMQTTConnection();
   }
-  MQTTClient.publish(home_topic + homeID, String(initialStreetName).c_str());
+  MQTTClient.publish(home_topic + homeName, String(initialStreetName).c_str());
   LLUBotLocationSent = true;
 }

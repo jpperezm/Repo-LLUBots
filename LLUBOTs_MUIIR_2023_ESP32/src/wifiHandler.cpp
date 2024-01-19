@@ -12,6 +12,8 @@ void attemptWifiConnection() {
     Serial.println("Attempting to connect to WiFi...");
     WiFi.begin(wifiSSID, wifiPassword);
     wifiConnectStartMillis = millis();
+    Serial.print("Connected to WiFi. IP: ");
+    Serial.println(WiFi.localIP().toString());
   } else {
     Serial.print("Connected to WiFi. IP: ");
     Serial.println(WiFi.localIP().toString());

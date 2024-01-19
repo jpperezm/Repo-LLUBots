@@ -13,12 +13,11 @@ const int LEFT_IR_PIN = 14;  // Left Infrared Sensor
 const int TRIG_PIN = 25;     // Ultrasonic Trigger
 const int ECHO_PIN = 26;     // Ultrasonic Echo
 
-long duration;
-int distance;
-bool rightIRValue;
-bool leftIRValue;
-int ultrasonicDistance;
-int nfcReadValue;
+bool rightIRSensorValue;
+bool leftIRSensorValue;
+int ultrasonicSensorValue;
+int NFCSensorValue = -1;
+
 MFRC522 mfrc522(SS_PIN, RESET_PIN);
 MFRC522::MIFARE_Key key;
 
@@ -52,8 +51,8 @@ int readUltrasonicSensor() {
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  duration = pulseIn(ECHO_PIN, HIGH);
-  distance = (duration * 0.034) / 2;
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  int distance = (duration * 0.034) / 2;
   if (distance > 254) distance = 255;
   return distance;
 }
@@ -61,7 +60,7 @@ int readUltrasonicSensor() {
 
 int readNFCSensor() {
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
-    return NO_NFC_DETECTED;
+    return NFCSensorValue;
   }
 
   byte blockAddr = 4;
@@ -73,5 +72,45 @@ int readNFCSensor() {
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 
-  return buffer[0];
+  NFCSensorValue = buffer[0];
+
+  return NFCSensorValue;
 }
+
+
+void updateSensors() {
+  rightIRSensorValue = readRightIRSensor();
+  leftIRSensorValue = readLeftIRSensor();
+  ultrasonicSensorValue = readUltrasonicSensor();
+  NFCSensorValue = readNFCSensor();
+
+  Serial.print(rightIRSensorValue);
+  Serial.print(",");
+  Serial.print(leftIRSensorValue);
+  Serial.print(",");
+  Serial.print(ultrasonicSensorValue);
+  Serial.print(",");
+  Serial.println(NFCSensorValue);
+}
+
+
+int getNFCSensorValue() {
+  return NFCSensorValue;
+}
+
+
+int getUltrasonicDistance() {
+  return ultrasonicSensorValue;
+}
+
+
+bool getRightIRValue() {
+  return rightIRSensorValue;
+}
+
+
+bool getLeftIRValue() {
+  return leftIRSensorValue;
+}
+
+

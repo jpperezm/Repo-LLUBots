@@ -15,12 +15,16 @@ bool LLUBotLocationSent = false;
 
 int numberOfLLUBots = 5;
 
-int homeName;
-int initialStreetName;
-int goalStreetName;
+int homeName = -1;
+int initialStreetName = -1;
+int goalStreetName = -1;
 int numberOfLLUBotsOnRoundabout = 0;
 
 int NFCCurrentValue;
+
+String LLUBotID = "Blanco";
+
+bool lineFollowerTest = false;
 
 bool atHome() {
   return NFCCurrentValue == homeName;
@@ -28,7 +32,7 @@ bool atHome() {
 
 
 bool foundAHome() {
-  return NFCCurrentValue != NO_NFC_DETECTED;
+  return NFCCurrentValue != -1;
 }
 
 
@@ -130,6 +134,16 @@ void updateRobotState() {
 }
 
 
+void handlConfigInitial() {
+  sendStopCommand();
+}
+
+
+void handleConfigContinuous() {
+  homeName = readNFCSensor();
+}
+
+
 void handleIdleInitial() {
   sendStopCommand();
 }
@@ -141,7 +155,7 @@ void handleIdleContinuous() {
 
 
 void handleSearchInitial() {
-  sendFollowLineCommand();
+  sendLineFollowerCommand();
 }
 
 
@@ -164,14 +178,12 @@ void handleFoundHomeInitial() {
 
 
 void handleReturnInitial() {
-  sendTurn180Command();
-  delay(30000);
-  sendFollowLineCommand();
+  sendTurnCommand();
 }
 
 
 void handleReturnContinuous() {
-  int NFCCurrentValue = readNFCSensor();
+  NFCCurrentValue = readNFCSensor();
 }
 
 
@@ -182,29 +194,27 @@ void handleIdleRoundaboutInitial() {
 
 
 void handleRoundaboutInitial() {
-  sendTurn90Command();
-  delay(15000);
-  sendFollowLineCommand();
+  sendTurnCommand();
 }
 
 
 void handleRoundaboutContinuous() {
-  int NFCCurrentValue = readNFCSensor();
+  NFCCurrentValue = readNFCSensor();
 }
 
 
 void handleLeaveRoundaboutInitial() {
-  sendTurn90Command();
+  sendTurnCommand();
 }
 
 
 void handleGoingHomeInitial() {
-  sendFollowLineCommand();
+  sendLineFollowerCommand();
 }
 
 
 void handleGoingHomeContinuous() {
-  int NFCCurrentValue = readNFCSensor();
+  NFCCurrentValue = readNFCSensor();
 }
 
 
@@ -216,6 +226,9 @@ void handleAtHomeInitial() {
 void handleRobotState() {
   if (currentState != previousState) {
     switch (currentState) {
+      case kConfig: handlConfigInitial(); 
+        Serial.println("State Config Initial");
+      break;
       case kIdle: handleIdleInitial();  
         Serial.println("State Idle Initial");
       break;
@@ -250,36 +263,18 @@ void handleRobotState() {
     }
   }
   switch (currentState) {
-    case kIdle: handleIdleContinuous(); 
-      Serial.println("State Idle Continuous");
+    case kConfig: handleConfigContinuous(); 
     break;
-    case kSearch: handleSearchContinuous(); 
-      Serial.println("State Search Continuous");
-    break;
-    case kAtHomeFirstTry: 
-      Serial.println("State AtHomeFirstTry Continuous");
-    break;
-    case kFoundHome: 
-      Serial.println("State FoundHome Continuous");
-    break;
-    case kReturn: handleReturnContinuous(); 
-      Serial.println("State Return Continuous");
-    break;
-    case kIdleRoundabout: 
-      Serial.println("State IdleRoundabout Continuous");
-    break;
-    case kRoundabout: handleRoundaboutContinuous(); 
-      Serial.println("State Roundabout Continuous");
-    break;
-    case kLeaveRoundabout: 
-      Serial.println("State LeaveRoundabout Continuous");
-    break;
-    case kGoingHome: handleGoingHomeContinuous(); 
-      Serial.println("State GoingHome Continuous");
-    break;
-    case kAtHome: 
-      Serial.println("State AtHome Continuous");
-    break;
+    case kIdle: handleIdleContinuous(); break;
+    case kSearch: handleSearchContinuous(); break;
+    case kAtHomeFirstTry: break;
+    case kFoundHome: break;
+    case kReturn: handleReturnContinuous(); break;
+    case kIdleRoundabout: break;
+    case kRoundabout: handleRoundaboutContinuous(); break;
+    case kLeaveRoundabout: break;
+    case kGoingHome: handleGoingHomeContinuous(); break;
+    case kAtHome: break;
     default: break;
   }
 }

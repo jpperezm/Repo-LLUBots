@@ -1,7 +1,12 @@
-const int NO_NFC_DETECTED = -1;
-
 void initializeSensors();
 bool readRightIRSensor();
 bool readLeftIRSensor();
 int readUltrasonicSensor();
 int readNFCSensor();
+
+int getNFCSensorValue();
+int getUltrasonicDistance();
+bool getRightIRValue();
+bool getLeftIRValue();
+
+void updateSensors();

@@ -4,8 +4,6 @@ enum MQTTConnectionState {
   kMQTTConnected
 };
 
-extern int LLUBotID;
-
 void initializeMQTTConnection();
 void establishMQTTConnection();
 void checkMQTTConnection();
