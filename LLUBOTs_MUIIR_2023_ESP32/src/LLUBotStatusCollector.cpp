@@ -1,12 +1,15 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-#include "../include/robotStatusCollector.h"
-#include "../include/robotStateMachine.h"
+#include "../include/LLUBotStatusCollector.h"
+#include "../include/LLUBotStateMachine.h"
 #include "../include/sensorsHandler.h"
 
+const int documentSize = 1024;
 
-String serializeRobotState(RobotState state) {
+
+// Converts the current state of LLUBot into a readable string format
+String convertLLUBotStateToString(LLUBotState state) {
   switch (state) {
     case kIdle: return "Idle";
     case kLineFollowerTest: return "LineFollowerTest";
@@ -26,15 +29,16 @@ String serializeRobotState(RobotState state) {
 }
 
 
-String generateRobotStatusJson() {
-  DynamicJsonDocument doc(1024);
+// Generates a JSON string representing the current status of the LLUBot.
+String generateLLUBotStatusJson() {
+  DynamicJsonDocument doc(documentSize);
 
   doc["LLUBotID"] = LLUBotID;
   doc["leftLineFollower"] = getLeftIRValue();
   doc["rightLineFollower"] = getRightIRValue();
   doc["ultrasonic"] = getUltrasonicDistance();
   doc["NFC"] = getNFCSensorValue();
-  doc["currentState"] = serializeRobotState(currentState);
+  doc["currentState"] = convertLLUBotStateToString(currentState);
   doc["homeName"] = homeName;
   doc["initialStreetName"] = initialStreetName;
   doc["goalStreetName"] = goalStreetName;

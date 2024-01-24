@@ -1,13 +1,15 @@
 #include <Arduino.h>
 
-#include "../include/robotStateMachine.h"
-#include "../include/I2CSensorHandler.h"
+#include "../include/LLUBotStateMachine.h"
+#include "../include/I2CHandler.h"
 #include "../include/sensorsHandler.h"
 #include "../include/clientMQTT.h"
 
-RobotState currentState = kConfig;
-RobotState previousState = kConfig;
-RobotState previousStateEmergencyStop = kConfig;
+// Global variables to manage LLUBot's state and sensor data.
+
+LLUBotState currentState = kConfig;
+LLUBotState previousState = kConfig;
+LLUBotState previousStateEmergencyStop = kConfig;
 
 bool startCommandReceived = false;
 bool resetCommandReceived = false;
@@ -28,6 +30,8 @@ String LLUBotID = "Blanco";
 bool lineFollowerTest = false;
 bool emergencyStop = false;
 
+
+// Functions to check LLUBot's position relative to NFC sensor readings.
 
 bool atHome() {
   return NFCCurrentValue == homeName;
@@ -55,8 +59,9 @@ bool nonEmergencyStates() {
 }
 
 
+// Updates the state of the LLUBot based on sensor inputs and commands.
 void updateRobotState() {
-  RobotState lastState = currentState;
+  LLUBotState lastState = currentState;
 
   if (emergencyStop && currentState != kEmergencyStop && !nonEmergencyStates()) {
     previousStateEmergencyStop = lastState;
@@ -71,43 +76,36 @@ void updateRobotState() {
   switch (currentState) {
     case kConfig:
       if (resetCommandReceived) {
-        Serial.println("Changing to state Idle");
         MQTTdisconnect();
         currentState = kIdle;
         resetCommandReceived = false;
       } else if (lineFollowerTest) {
-        Serial.println("Changing to state LineFollowerTest");
         currentState = kLineFollowerTest;
       } 
       break;
     case kLineFollowerTest:
       if (!lineFollowerTest) {
         currentState = kConfig;
-        Serial.println("Changing to state kConfig");
       }
       break;
 
     case kIdle:
       if (startCommandReceived) {
         currentState = kSearch;
-         Serial.println("Changing to state kSearch");
-         startCommandReceived = false;
+        startCommandReceived = false;
       }
       break;
 
     case kSearch:
       if (atHome()) {
         currentState = kAtHomeFirstTry;
-         Serial.println("Changing to state kAtHomeFirstTry");
       } else if (foundAHome()) {
         currentState = kFoundHome;
-         Serial.println("Changing to state kFoundHome");
       }
       break;
 
     case kAtHomeFirstTry:
       if (resetCommandReceived) {
-         Serial.println("Changing to state kIdle");
         currentState = kIdle;
         resetCommandReceived = false;
       }
@@ -115,7 +113,6 @@ void updateRobotState() {
 
     case kFoundHome:
       if (LLUBotLocationSent) {
-        Serial.println("Changing to state kReturn");
         currentState = kReturn;
         LLUBotLocationSent = false;
       }
@@ -123,14 +120,12 @@ void updateRobotState() {
 
     case kReturn:
       if (foundInitialStreet()) {
-        Serial.println("Changing to state kIdleRoundabout");
         currentState = kIdleRoundabout;
       }
       break;
 
     case kIdleRoundabout:
       if (numberOfLLUBotsOnRoundabout == numberOfLLUBots) {
-        Serial.println("Changing to state kRoundabout");
         currentState = kRoundabout;
         numberOfLLUBotsOnRoundabout = 0;
       }
@@ -138,21 +133,18 @@ void updateRobotState() {
 
     case kRoundabout:
       if (foundGoalStreet()) {
-        Serial.println("Changing to state kLeaveRoundabout");
         currentState = kLeaveRoundabout;
       }
       break;
 
     case kLeaveRoundabout:
       if (readRightIRSensor() && readLeftIRSensor()) {
-        Serial.println("Changing to state GoingHome");
         currentState = kGoingHome;
       }
       break;
 
     case kGoingHome:
       if (atHome()) {
-        Serial.println("Changing to state kAtHome");
         currentState = kAtHome;
       }
       break;
@@ -166,6 +158,8 @@ void updateRobotState() {
   previousState = lastState;
 }
 
+
+// State-specific initial actions when entering a new state.
 
 void handleEmergencyStopInitial() {
   sendStopCommand();
@@ -221,7 +215,8 @@ void handleAtHomeFirstTryContinuous() {
 
 void handleFoundHomeInitial() {
   sendStopCommand();
-  publishLLUBotHomeLocation(NFCCurrentValue);
+  int homeFound = NFCCurrentValue;
+  publishEntryStreetToLLUBotForHome(homeFound);
 }
 
 
@@ -237,7 +232,7 @@ void handleReturnContinuous() {
 
 void handleIdleRoundaboutInitial() {
   sendStopCommand();
-  publishRoundabout("IdleRoundabout");
+  publishRoundabout("ArrivedAtRoundabout");
 }
 
 
@@ -271,6 +266,7 @@ void handleAtHomeInitial() {
 }
 
 
+// Continuously executed actions within the current state.
 void handleRobotState() {
   if (currentState != previousState) {
     switch (currentState) {

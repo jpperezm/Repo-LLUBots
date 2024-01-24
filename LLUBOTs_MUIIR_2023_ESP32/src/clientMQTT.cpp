@@ -3,26 +3,27 @@
 #include <PubSubClient.h>
 
 #include "../include/clientMQTT.h"
-#include "../include/robotStatusCollector.h"
-#include "../include/robotStateMachine.h"
+#include "../include/LLUBotStatusCollector.h"
+#include "../include/LLUBotStateMachine.h"
 
-WiFiClient wifiClient;
+WiFiClient wifiClient;  // WiFi client instance for handling WiFi network communications.
+PubSubClient MQTTClient(wifiClient);  // MQTT client instance for handling MQTT protocol communications.
 
-PubSubClient MQTTClient(wifiClient);
+const char *mqtt_broker = "51.20.185.180";  // MQTT broker address.
+const int mqtt_port = 1883;  // MQTT broker port.
 
-const char *mqtt_broker = "51.20.185.180";
-const int mqtt_port = 1883;
-
+// Topics for MQTT subscriptions and publications.
 const char *home_topic = "/LLUBot/NFC/";
 const char *config_topic = "/LLUBot/config/";
 const char *info_topic = "/LLUBot/info";
 const char *roundabout_topic = "/LLUBot/roundabout";
 
-MQTTConnectionState mqttState = kMQTTDisconnected;
-unsigned long mqttConnectStartMillis = 0;
-const unsigned long mqttConnectTimeout = 10000;
+MQTTConnectionState mqttState = kMQTTDisconnected;  // Current MQTT connection state.
+unsigned long mqttConnectStartMillis = 0;  // Timestamp to track MQTT connection attempts.
+const unsigned long mqttConnectTimeout = 10000;  // Timeout for MQTT connection attempts in milliseconds.
 
 
+// Converts MQTT payload to a String format for easier processing.
 String convertPayloadToString(byte *payload, unsigned int length) {
   String message;
   for (int i = 0; i < length; i++) {
@@ -32,6 +33,7 @@ String convertPayloadToString(byte *payload, unsigned int length) {
 }
 
 
+// Callback function for processing received MQTT messages.
 void callback(char *topic, byte *payload, unsigned int length) {
   Serial.print("Message arrived in topic: ");
   Serial.println(topic);
@@ -76,6 +78,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
 }
 
 
+// Initializes MQTT connection settings.
 void initializeMQTTConnection() {
   MQTTClient.setServer(mqtt_broker, mqtt_port);
   MQTTClient.setCallback(callback);
@@ -83,6 +86,7 @@ void initializeMQTTConnection() {
 }
 
 
+// Attempts to establish a connection with the MQTT broker.
 void establishMQTTConnection() {
   if (mqttState == kMQTTDisconnected) {
     Serial.println("Connecting to MQTT...");
@@ -115,6 +119,7 @@ void establishMQTTConnection() {
 }
 
 
+// Checks and maintains the MQTT connection status.
 void checkMQTTConnection() {
   if (mqttState != kMQTTConnected) {
     establishMQTTConnection();
@@ -122,6 +127,7 @@ void checkMQTTConnection() {
 }
 
 
+// Continuously processes incoming and outgoing MQTT messages.
 void handleMQTTLoop() {
   if (MQTTClient.connected()) {
     MQTTClient.loop();
@@ -132,8 +138,9 @@ void handleMQTTLoop() {
 }
 
 
+// Publishes the current status of the robot to the MQTT broker.
 void publishRobotStatus() {
-  String jsonData = generateRobotStatusJson();
+  String jsonData = generateLLUBotStatusJson();
 
   if (!MQTTClient.connected()) {
     establishMQTTConnection();
@@ -142,6 +149,7 @@ void publishRobotStatus() {
 }
 
 
+// Publishes a message to the roundabout topic on MQTT.
 void publishRoundabout(String status) {
   if (!MQTTClient.connected()) {
     establishMQTTConnection();
@@ -150,7 +158,8 @@ void publishRoundabout(String status) {
 }
 
 
-void publishLLUBotHomeLocation(int homeName) {
+// Publishes the assigned home entry street to the LLUBot.
+void publishEntryStreetToLLUBotForHome(int homeName) {
   if (!MQTTClient.connected()) {
     establishMQTTConnection();
   }
@@ -159,6 +168,7 @@ void publishLLUBotHomeLocation(int homeName) {
 }
 
 
+// Disconnects from the MQTT broker.
 void MQTTdisconnect() {
   MQTTClient.disconnect();
 }
