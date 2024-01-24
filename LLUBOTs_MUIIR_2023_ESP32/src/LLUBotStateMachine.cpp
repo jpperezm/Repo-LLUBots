@@ -25,7 +25,7 @@ int numberOfLLUBotsOnRoundabout = 0;
 
 int NFCCurrentValue;
 
-String LLUBotID = "Blanco";
+String LLUBotID = "Blanco";  // Change it for each LLUBot
 
 bool lineFollowerTest = false;
 bool emergencyStop = false;
